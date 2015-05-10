@@ -1,0 +1,455 @@
+/**
+ * Logres
+ * Angharad web interface
+ * Copyright 2015 Nicolas Mora mail@babelouest.org
+ * Licenced under AGPL
+ */
+/* general */
+
+.top-popup {
+	display:inline;
+	top:0;
+	left: 50%;
+	transform: translate(-50%);
+	text-align:center;
+	width:100%;
+	max-width: 60%;
+	height:auto;
+	background-color:#4c4c4c;
+	border-bottom-left-radius:5px;
+	border-bottom-right-radius:5px;
+	position:fixed;
+	font-weight: bold;
+	font-size:110%;
+}
+
+.hidden {
+  display:none;
+}
+
+.p-hidden {
+  display:none;
+}
+
+.div-hidden {
+  display:none;
+  font-style: italic;
+  text-decoration-style: dotted;
+  margin: 4px;
+}
+
+.admin-button {
+  display:none;
+}
+
+.block {
+  margin: 5px;
+  border-style: solid;
+  border-width: 3px;
+  border-color: #292929;
+  border-radius:10px;
+  min-height: 20px;
+}
+
+.template {
+  display: none;
+}
+
+hr {
+  height: 3px;
+  color: #292929;
+  background-color: #292929;
+  margin: 3px;
+}
+
+.bottom-message {
+  bottom: 0;
+  position: absolute;
+  font-size: 80%;
+  font-weight: bold;
+  font-style: italic;
+}
+
+.log-message-error {
+	color: #ff0000;
+}
+
+.log-message-info {
+	color: #00aa00;
+}
+
+.log-message-warn {
+	color: #ffaa00;
+}
+
+.title-display {
+  margin: 5px;
+  display : inline-block;
+  font-weight: bold;
+  min-width: 30%;
+}
+
+.small-block {
+  margin: 5px;
+  padding: 5px;
+  border-style: solid;
+  border-width: 1px;
+  border-color: #292929;
+  border-radius:10px;
+	width: auto;
+}
+
+.span-new-group {
+  margin-left: 5px;
+}
+
+/* side navigation */
+#logres-sidemenu {
+  margin: 0;
+  padding: 0;
+  width: 160px;
+  float: left;
+  background: #f8f8f8;
+  border-right: 1px solid #c9c9c9;
+}
+
+
+#logres-sidemenu li {
+  display: block;
+  text-align: center;
+  border-top: 1px solid #fff;
+  font-size: 1.1em;
+}
+
+#logres-sidemenu li a { 
+  display: block;
+  padding: 6px 2px;
+  color: #555;
+  text-decoration: none;
+  border-bottom: 1px solid #d1d1d1;
+
+}
+#logres-sidemenu li a:hover {
+  background: #f2f2f2;
+}
+
+#logres-sidemenu li a strong { 
+  display: block;
+  margin-top: 5px;
+}
+
+#logres-sidemenu li a.open {
+  background: #DCDCE0;
+}
+
+#logres-tabs-menu {
+  display: block;
+  margin: 0 auto;
+  background: none;
+}
+
+#logres-tabs-content {
+  display: block;
+  background: #DCDCE0;
+  padding: 0px 15px;
+  margin-left: 160px;
+  -webkit-box-shadow: 1px 2px 1px rgba(0,0,0,0.4);
+  -moz-box-shadow: 1px 2px 1px rgba(0,0,0,0.4);
+  box-shadow: 1px 2px 1px rgba(0,0,0,0.4);
+}
+
+.contentblock {
+  display: block;
+  padding: 15px 20px;
+  position: relative;
+  min-height: 650px;
+}
+
+.contentblock.hidden {
+  display: none;
+}
+
+/* Dashboard */
+
+/* Switches */
+input[type=checkbox] {
+  display:none;
+}
+
+input[type=checkbox] + label {
+  background: url('../images/switch-off.jpg') no-repeat;
+  height: 26px;
+  padding-left: 55px;
+  vertical-align:middle;
+  display:inline-block;
+}
+
+input[type=checkbox]:checked + label {
+  background: url('../images/switch-on.jpg') no-repeat;
+  height: 26px;
+}
+
+.sw-type-tw {
+  margin: 10px;
+}
+
+.sw-type-no {
+  margin: 10px;
+}
+
+.sw-type-nc {
+  margin: 10px;
+}
+
+.sw-type-nc input[type=checkbox] + label {
+  background: url('../images/switch-on.jpg') no-repeat;
+  height: 26px;
+  padding-left: 55px;
+}
+
+.sw-type-nc input[type=checkbox]:checked + label {
+  background: url('../images/switch-off.jpg') no-repeat;
+  height: 26px;
+}
+
+.sw-type-tw input[type=checkbox] + label {
+  background: url('../images/switch-left.jpg') no-repeat;
+  height: 26px;
+  padding-left: 55px;
+}
+
+.sw-type-tw input[type=checkbox]:checked + label {
+  background: url('../images/switch-right.jpg') no-repeat;
+  height: 26px;
+}
+
+.div-switch div {
+}
+
+/* Dimmers */
+.dimmer-row div {
+  width: 20%;
+  float: left;
+}
+
+.dimmer-row div input {
+}
+
+.dimmer-class  {
+  margin: 10px;
+}
+
+/* Heaters */
+
+.div-heater div {
+  margin: 5px;
+}
+
+.heater-class   {
+  margin: 10px;
+}
+
+/* Sensors */
+.sensor-display {
+  display : inline-block;
+  min-width: 20%;
+}
+
+.sensor-value {
+  display: inline-block;
+}
+
+.sensor-class {
+  margin: 10px;
+}
+
+/* Scripts */
+
+.script {
+  margin: 10px;
+}
+
+.script-run {
+	color:inherit;
+	text-decoration: none;
+}
+
+.schedule-attached {
+	width: 20px;
+	height: 20px;
+}
+
+a.schedule-attached{
+	position:relative;
+	z-index:24;
+	color:#000;
+	text-decoration:none
+}
+
+a.schedule-attached:hover{
+	z-index:25;
+}
+
+a.schedule-attached span{
+	display: none
+}
+
+a.schedule-attached:hover span, a.schedule-attached:active span {
+  display:block;
+  position:absolute;
+  top:2em;
+  left:2em;
+  width:30em;
+  border:1px solid #292929;
+  border-radius:10px;
+  background-color:#f9f9f9;
+  color:#000;
+  text-align: left
+}
+
+.script-button {
+  min-width: 200px;
+}
+
+/* schedules */
+
+.schedule-class {
+  margin: 10px;
+}
+
+/* camera */
+
+ul.rig {
+	list-style: none;
+	font-size: 0px;
+	width: 680px;
+}
+ul.rig li {
+	display: inline-block;
+	padding: 2px;
+	background: #fff;
+	border: 1px solid #ddd;
+	vertical-align: top;
+	box-shadow: 0 0 5px #ddd;
+	box-sizing: border-box;
+	-moz-box-sizing: border-box;
+	-webkit-box-sizing: border-box;
+}
+ul.rig li img {
+	max-width: 100%;
+	height: auto;
+	margin: 0 0 2px;
+}
+ 
+@media (max-width: 480px) {
+	ul.grid-nav li {
+		display: block;
+		margin: 0 0 5px;
+	}
+	ul.grid-nav li a {
+		display: block;
+	}
+	ul.rig {
+		margin-left: 0;
+	}
+	ul.rig li {
+		width: 100% !important; /* over-ride all li styles */
+		margin: 0 0 2px;
+	}
+}
+
+.camera-label {
+  margin: 5px;
+  display : inline-block;
+  font-weight: bold;
+  min-width: 20%;
+}
+
+.s {
+  margin: 5px;
+  display : inline-block;
+  font-weight: bold;
+  min-width: 20%;
+}
+
+/* mpc */
+
+.music-status {
+  font-size: 100%;
+  font-weight: bold;
+  font-style: italic;
+}
+
+/* radio */
+
+.radio {
+  margin: 5px;
+}
+
+.radio-metatada-song {
+  font-size: 100%;
+  font-weight: bold;
+}
+
+.radio-metatada-title {
+  font-size: 100%;
+	display: inline-block;
+	min-width: 100px;
+}
+
+/* Dialog */
+.dialog {
+  background: #008080;
+}
+
+.dialog p {
+  margin: 2px;
+  border-style: solid;
+  border-width: 2px;
+  border-color: #004545;
+  border-radius:10px;
+}
+
+.dialog  p label {
+  display: inline-block;
+  width: 150px;
+  padding-top: 5px;
+  padding-left: 0px;
+}
+
+.dialog  p input:not([type="checkbox"])  {
+  display: inline-block;
+  width: 100px;
+}
+
+/* new group */
+.new-group-div {
+  margin: 5px;
+  border-style: none;
+  border-width: 3px;
+  border-color: #292929;
+  border-radius:10px;
+  min-height: 20px;
+}
+
+.new-group-div :hover {
+	cursor: pointer;
+	background: #f2f2f2;
+}
+
+/* Monitor */
+.monitor-chart {
+  height:300px;
+  width: 100%;
+}
+
+.centered {
+  position: relative;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.monitor-series {
+  background-color: transparent;
+}

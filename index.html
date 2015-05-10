@@ -1,0 +1,663 @@
+<!--
+Logres
+Angharad web interface
+Copyright 2015 Nicolas Mora mail@babelouest.org
+Licenced under AGPL
+-->
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+		<title>Logres</title>
+		<link rel="icon" type="image/png" href="images/favicon.png" />
+
+		<!-- JQuery and JQuery UI -->
+		<script type="text/javascript" src="js/jquery-2.1.1.min.js"></script>
+		<script type="text/javascript" src="js/jquery-ui-1.10.4.min.js"></script>
+		<link rel="stylesheet" type="text/css" href="css/jquery-ui-1.10.4.min.css" />
+	
+		<!-- Localisation -->
+		<script type="text/javascript" src="js/i18next-1.7.4.min.js"></script>
+
+    <!-- tagging -->
+    <link rel="stylesheet" type="text/css" href="css/bootstrap-tagsinput.css" />
+    
+		<!-- Charts and graphs -->
+    <link rel="stylesheet" type="text/css" href="css/jquery.jqplot.min.css" />
+    <script type="text/javascript" src="js/jquery.jqplot.min.js"></script>
+    <script type="text/javascript" src="js/jqplot.highlighter.min.js"></script>
+    <script type="text/javascript" src="js/jqplot.cursor.min.js"></script>
+    <script type="text/javascript" src="js/jqplot.canvasTextRenderer.min.js"></script>
+    <script type="text/javascript" src="js/jqplot.canvasAxisLabelRenderer.min.js"></script>
+    <script type="text/javascript" src="js/jqplot.dateAxisRenderer.min.js"></script>
+		
+		<!-- Context Menu -->
+		<script type="text/javascript" src="contextMenu/jquery.contextMenu.js"></script>
+		<script type="text/javascript" src="contextMenu/jquery.ui.position.js"></script>
+		<link rel="stylesheet" href="contextMenu/jquery.contextMenu.css" />
+		
+    <!-- lightbox -->
+    <script src="lightbox/js/lightbox-2.6.min.js"></script>
+    <link href="lightbox/css/lightbox.css" rel="stylesheet" />
+    
+		<!-- Logres -->
+		<script type="text/javascript" src="js/logres.js"></script>
+		<script type="text/javascript" src="js/carleon.js"></script>
+		<script type="text/javascript" src="js/angharad.js"></script>
+		<link rel="stylesheet" type="text/css" href="css/logres.css" />
+		<link rel="stylesheet" type="text/css" media="all" href="css/font-awesome.min.css">
+		
+	</head>
+	<body>
+	<div id="top-popup" class="top-popup hidden">
+	</div>
+	<div id="logres-tabs-menu" class="clearfix">
+		<ul id="logres-sidemenu">
+			<li>
+			<a href="#dashboard-content" data-an-tab="0" class="open"><i class="icon-home icon-large"></i><strong data-i18n>My dashboard</strong></a>
+			</li>
+
+			<li>
+			<a href="#switches-content" data-an-tab="1"><i class="icon-lightbulb icon-large"></i><strong data-i18n>Lights and switches</strong></a>
+			</li>
+			
+			<li>
+			<a href="#heaters-content" data-an-tab="2"><i class="icon-sun icon-large"></i><strong data-i18n>Heaters</strong></a>
+			</li>
+			
+			<li>
+			<a href="#sensors-content" data-an-tab="3"><i class="icon-signal icon-large"></i><strong data-i18n>Sensors</strong></a>
+			</li>
+			
+			<li>
+			<a href="#cameras-content" data-an-tab="4"><i class="icon-camera icon-large"></i><strong data-i18n>Cameras</strong></a>
+			</li>
+			
+			<li>
+			<a href="#music-content" data-an-tab="5"><i class="icon-music icon-large"></i><strong data-i18n>Music</strong></a>
+			</li>
+			
+			<li>
+			<a href="#scripts-content" data-an-tab="6"><i class="icon-calendar-empty icon-large"></i><strong data-i18n>Scripts and scheduled tasks</strong></a>
+			</li>
+			
+			<li>
+			<a href="#monitors-content" data-an-tab="7"><i class="icon-bar-chart icon-large"></i><strong data-i18n>Monitors</strong></a>
+			</li>
+			
+			<li>
+			<a href="#parameters-content" data-an-tab="8"><i class="icon-gears icon-large"></i><strong data-i18n>Parameters</strong></a>
+			</li>
+		</ul>
+		
+		<div id="logres-tabs-content">
+			<div id="dashboard-content" class="contentblock tab-0">
+				<h1 id="dashboard-title"></h1>
+        <div id="new-group-0" class="div-hidden new-group-div">
+          <label for="new-group-0-title" class="title-display new-group" data-an-tab="0"><img src="contextMenu/images/page_white_add.png"/><span class="span-new-group" data-i18n>Add a group</span></label>
+        </div>
+			</div>
+			<div id="switches-content" class="contentblock hidden tab-1">
+				<h1 data-i18n>Lights and switches</h1>
+        <div id="new-group-1" class="div-hidden new-group-div">
+          <label for="new-group-0-title" class="title-display new-group" data-an-tab="1"><img src="contextMenu/images/page_white_add.png"/><span class="span-new-group" data-i18n>Add a group</span></label>
+        </div>
+			</div>
+			<div id="heaters-content" class="contentblock hidden tab-2">
+				<h1 data-i18n>Heaters</h1>
+        <div id="new-group-2" class="div-hidden new-group-div">
+          <label for="new-group-0-title" class="title-display new-group" data-an-tab="2"><img src="contextMenu/images/page_white_add.png"/><span class="span-new-group" data-i18n>Add a group</span></label>
+        </div>
+			</div>
+			<div id="sensors-content" class="contentblock hidden tab-3">
+				<h1 data-i18n>Sensors</h1>
+        <div id="new-group-3" class="div-hidden new-group-div">
+          <label for="new-group-0-title" class="title-display new-group" data-an-tab="3"><img src="contextMenu/images/page_white_add.png"/><span class="span-new-group" data-i18n>Add a group</span></label>
+        </div>
+			</div>
+			<div id="cameras-content" class="contentblock hidden tab-4">
+				<h1 data-i18n>Cameras</h1>
+				<div id="container-camera" data-an-nb-elements="0">
+				</div>
+			</div>
+			<div id="music-content" class="contentblock hidden tab-5">
+				<h1 data-i18n>Music</h1>
+				<div id="container-music" data-an-nb-elements="0">
+				</div>
+			</div>
+			<div id="scripts-content" class="contentblock hidden tab-6">
+				<h1 data-i18n>Scripts and scheduled tasks</h1>
+			</div>
+			<div id="monitors-content" class="contentblock hidden tab-7">
+				<h1 data-i18n>Monitors</h1>
+        <div id="new-monitor" class="new-group-div">
+          <label for="new-group-7-title" class="title-display" data-an-tab="7"><img src="contextMenu/images/page_white_add.png"/><span class="span-new-group" data-i18n>Add a new monitor graph</span></label>
+        </div>
+				<div id="container-monitor" data-an-nb-elements="0">
+				</div>
+			</div>
+			<div id="parameters-content" class="contentblock hidden tab-8">
+				<h1 data-i18n>Parameters</h1>
+        <label id="div-admin-cur-profile-label" data-i18n>Current profile</label>
+				<div id="div-admin-cur-profile" class="block">
+					<p id="p-admin-cur-profile">
+						<label id="admin-cur-profile" class="title-display" data-i18n>Profile name</label>
+						<label id="admin-cur-profile-display"></label>
+					</p>
+					<p id="p-admin-rename-profile">
+						<label for="admin-rename-profile" class="title-display" data-i18n>Rename to</label>
+						<input type="text" name="admin-rename-profile" id="admin-rename-profile" value=""/>
+						<label id="admin-rename-profile-display"></label>
+					</p>
+					<p id="p-admin-default-profile">
+            <label id="admin-default-profile-title" class="title-display" data-i18n>Default profile</label>
+						<input type="checkbox" name="admin-default-profile" id="admin-default-profile">
+						<label for="admin-default-profile" id="label-admin-default-profile"></label>
+					</p>
+					<p id="p-admin-profile-remove">
+						<label for="admin-profile-remove" class="title-display" data-i18n>Remove current profile</label>
+						<input type="button" name="admin-profile-remove" id="admin-profile-remove" value="Remove" data-i18n/>
+						<label id="admin-profile-remove-label"></label>
+					</p>
+				</div>
+        <label id="div-admin-cur-profile-label" data-i18n>Change profile</label>
+				<div id="div-admin-cur-profile" class="block">
+					<p id="p-admin-profiles-list">
+						<label for="admin-profiles-list" class="title-display" data-i18n>Switch to profile</label>
+						<select id="admin-profiles-list" name="admin-profiles-list">
+						</select>
+					</p>
+					<p id="p-admin-profile-new">
+						<label for="admin-profile-new" class="title-display" data-i18n>Create a new profile</label>
+						<input type="text" name="admin-profile-new" id="admin-profile-new" value=""/>
+            <label id="admin-profile-new-result"></label>
+					</p>
+				</div>
+        <label id="div-admin-toggle-label" data-i18n>Administrator</label>
+				<div id="div-admin-toggle" class="block">
+					<p id="p-admin-toggle">
+						<label for="admin-toggle" class="title-display" data-i18n>Administrator mode</label>
+						<input type="checkbox" name="admin-toggle" id="admin-toggle">
+						<label for="admin-toggle" id="label-admin-toggle"></label>
+					</p>
+					<p id="p-admin-refresh">
+						<label for="admin-refresh-title" class="title-display" data-i18n>Refresh data</label>
+						<input type="button" name="admin-refresh" id="admin-refresh" value="Resfresh" data-i18n/>
+						<label id="admin-refresh-label"></label>
+					</p>
+				</div>
+        <label id="div-admin-lang-label" data-i18n>Interface language</label>
+				<div id="div-admin-lang" class="block">
+          <label for="admin-lang" id="admin-lang-label" class="title-display" data-i18n>Language</label>
+          <select id="admin-lang-select" name="admin-lang-select">
+            <option value="en">English</option>
+            <option value="fr">Français</option>
+          </select>
+				</div>
+			</div>
+		</div>
+		</div>
+	</body>
+</html>
+
+<div id="dialog-monitor" title="Monitor an element" class="template dialog">
+  <p class="p-monitor-since">
+    <label for="dialog-monitor-since-label" data-i18n>Monitor since</label>
+    <select id="dialog-monitor-since" name="dialog-monitor-since">
+      <option value="0" data-i18n>Last hour</option>
+      <option value="1" data-i18n>Last 2 hours</option>
+      <option value="2" data-i18n>Last 6 hours</option>
+      <option value="3" data-i18n>Last 12 hours</option>
+      <option value="4" data-i18n selected='true'>Last day</option>
+      <option value="5" data-i18n>Last 2 days</option>
+      <option value="6" data-i18n>Last 3 days</option>
+      <option value="7" data-i18n>Last week</option>
+      <option value="8" data-i18n>Last month</option>
+    </select>
+  </p>
+  <div id="dialog-chart" style="height:300px;width:400px;"></div>
+</div>
+
+<div id="dialog-dimmer" title="Edit a dimmer" class="template dialog">
+  <p>
+    <label for="dialog-dimmer-name" data-i18n>Internal name</label>
+    <label id="dialog-dimmer-name"></label>
+  </p>
+  <p>
+    <label for="dialog-dimmer-display" data-i18n>Displayed name</label>
+    <input type="text" name="dialog-dimmer-display" id="dialog-dimmer-display" value="">
+  </p>
+  <p>
+    <label for="dialog-dimmer-enabled" data-i18n>Enabled</label>
+    <input type="checkbox" name="dialog-dimmer-enabled" id="dialog-dimmer-enabled"><label for="dialog-dimmer-enabled"></label>
+  </p>
+  <p>
+    <label for="dialog-dimmer-monitored" data-i18n>Monitored</label>
+    <input type="checkbox" name="dialog-dimmer-monitored" id="dialog-dimmer-monitored"><label for="dialog-dimmer-monitored"></label>
+  </p>
+  <p id="p-dialog-dimmer-monitored-every">
+    <label for="dialog-dimmer-monitored-every" data-i18n>Monitor every</label>
+    <select id="dialog-dimmer-monitored-every" name="dialog-dimmer-monitored-every">
+      <option value="1" data-i18n>1 minute</option>
+      <option value="2" data-i18n>2 minutes</option>
+      <option value="3" data-i18n>3 minutes</option>
+      <option value="4" data-i18n>4 minutes</option>
+      <option value="5" data-i18n>5 minutes</option>
+      <option value="10" data-i18n>10 minutes</option>
+      <option value="15" data-i18n>15 minutes</option>
+      <option value="20" data-i18n>20 minutes</option>
+      <option value="30" data-i18n>30 minutes</option>
+      <option value="60" data-i18n>1 hour</option>
+      <option value="120" data-i18n>2 hours</option>
+      <option value="180" data-i18n>3 hours</option>
+      <option value="240" data-i18n>4 hours</option>
+      <option value="300" data-i18n>5 hours</option>
+      <option value="360" data-i18n>6 hours</option>
+      <option value="720" data-i18n>12 hours</option>
+      <option value="1440" data-i18n>1 day</option>
+    </select>
+  </p>
+</div>
+
+<div id="dialog-switch" title="Edit a switch" class="template dialog">
+  <p>
+    <label for="dialog-switch-name" data-i18n>Internal name</label>
+    <label id="dialog-switch-name"></label>
+  </p>
+  <p>
+    <label for="dialog-switch-display" data-i18n>Displayed name</label>
+    <input type="text" name="dialog-switch-display" id="dialog-switch-display" value="">
+  </p>
+  <p>
+    <label for="dialog-switch-display" data-i18n>Type</label>
+    <select id="dialog-switch-type" name="dialog-switch-type">
+      <option value="0" data-i18n>Normally open</option>
+      <option value="1" data-i18n>Normally close</option>
+      <option value="2" data-i18n>Threeway</option>
+    </select>
+  </p>
+  <p>
+    <label for="dialog-switch-enabled" data-i18n>Enabled</label>
+    <input type="checkbox" name="dialog-switch-enabled" id="dialog-switch-enabled"><label for="dialog-switch-enabled"></label>
+  </p>
+  <p>
+    <label for="dialog-switch-monitored" data-i18n>Monitored</label>
+    <input type="checkbox" name="dialog-switch-monitored" id="dialog-switch-monitored"><label for="dialog-switch-monitored"></label>
+  </p>
+  <p id="p-dialog-switch-monitored-every">
+    <label for="dialog-switch-monitored-every" data-i18n>Monitor every</label>
+    <select id="dialog-switch-monitored-every" name="dialog-switch-monitored-every">
+      <option value="1" data-i18n>1 minute</option>
+      <option value="2" data-i18n>2 minutes</option>
+      <option value="3" data-i18n>3 minutes</option>
+      <option value="4" data-i18n>4 minutes</option>
+      <option value="5" data-i18n>5 minutes</option>
+      <option value="10" data-i18n>10 minutes</option>
+      <option value="15" data-i18n>15 minutes</option>
+      <option value="20" data-i18n>20 minutes</option>
+      <option value="30" data-i18n>30 minutes</option>
+      <option value="60" data-i18n>1 hour</option>
+      <option value="120" data-i18n>2 hours</option>
+      <option value="180" data-i18n>3 hours</option>
+      <option value="240" data-i18n>4 hours</option>
+      <option value="300" data-i18n>5 hours</option>
+      <option value="360" data-i18n>6 hours</option>
+      <option value="720" data-i18n>12 hours</option>
+      <option value="1440" data-i18n>1 day</option>
+    </select>
+  </p>
+</div>
+
+<div id="dialog-heater" title="Edit a heater" class="template dialog">
+  <p>
+    <label for="dialog-heater-name" data-i18n>Internal name</label>
+    <label id="dialog-heater-name"></label>
+  </p>
+  <p>
+    <label for="dialog-heater-display" data-i18n>Displayed name</label>
+    <input type="text" name="dialog-heater-display" id="dialog-heater-display" value="">
+  </p>
+  <p>
+    <label for="dialog-heater-unit" data-i18n>Unit</label>
+    <input type="text" name="dialog-heater-unit" id="dialog-heater-unit" value="">
+  </p>
+  <p>
+    <label for="dialog-heater-enabled" data-i18n>Enabled</label>
+    <input type="checkbox" name="dialog-heater-enabled" id="dialog-heater-enabled"><label for="dialog-heater-enabled"></label>
+  </p>
+  <p>
+    <label for="dialog-heater-monitored" data-i18n>Monitored</label>
+    <input type="checkbox" name="dialog-heater-monitored" id="dialog-heater-monitored"><label for="dialog-heater-monitored"></label>
+  </p>
+  <p id="p-dialog-heater-monitored-every">
+    <label for="dialog-heater-monitored-every" data-i18n>Monitor every</label>
+    <select id="dialog-heater-monitored-every" name="dialog-heater-monitored-every">
+      <option value="1" data-i18n>1 minute</option>
+      <option value="2" data-i18n>2 minutes</option>
+      <option value="3" data-i18n>3 minutes</option>
+      <option value="4" data-i18n>4 minutes</option>
+      <option value="5" data-i18n>5 minutes</option>
+      <option value="10" data-i18n>10 minutes</option>
+      <option value="15" data-i18n>15 minutes</option>
+      <option value="20" data-i18n>20 minutes</option>
+      <option value="30" data-i18n>30 minutes</option>
+      <option value="60" data-i18n>1 hour</option>
+      <option value="120" data-i18n>2 hours</option>
+      <option value="180" data-i18n>3 hours</option>
+      <option value="240" data-i18n>4 hours</option>
+      <option value="300" data-i18n>5 hours</option>
+      <option value="360" data-i18n>6 hours</option>
+      <option value="720" data-i18n>12 hours</option>
+      <option value="1440" data-i18n>1 day</option>
+    </select>
+  </p>
+</div>
+
+<div id="dialog-sensor" title="Edit a sensor" class="template dialog">
+  <p>
+    <label for="dialog-sensor-name" data-i18n>Internal name</label>
+    <label id="dialog-sensor-name"></label>
+  </p>
+  <p>
+    <label for="dialog-sensor-display" data-i18n>Displayed name</label>
+    <input type="text" name="dialog-sensor-display" id="dialog-sensor-display" value="">
+  </p>
+  <p>
+    <label for="dialog-sensor-unit" data-i18n>Unit</label>
+    <input type="text" name="dialog-sensor-unit" id="dialog-sensor-unit" value="">
+  </p>
+  <p>
+    <label for="dialog-sensor-enabled" data-i18n>Enabled</label>
+    <input type="checkbox" name="dialog-sensor-enabled" id="dialog-sensor-enabled"><label for="dialog-sensor-enabled"></label>
+  </p>
+  <p>
+    <label for="dialog-sensor-monitored" data-i18n>Monitored</label>
+    <input type="checkbox" name="dialog-sensor-monitored" id="dialog-sensor-monitored"><label for="dialog-sensor-monitored"></label>
+  </p>
+  <p id="p-dialog-sensor-monitored-every">
+    <label for="dialog-sensor-monitored-every" data-i18n>Monitor every</label>
+    <select id="dialog-sensor-monitored-every" name="dialog-sensor-monitored-every">
+      <option value="1" data-i18n>1 minute</option>
+      <option value="2" data-i18n>2 minutes</option>
+      <option value="3" data-i18n>3 minutes</option>
+      <option value="4" data-i18n>4 minutes</option>
+      <option value="5" data-i18n>5 minutes</option>
+      <option value="10" data-i18n>10 minutes</option>
+      <option value="15" data-i18n>15 minutes</option>
+      <option value="20" data-i18n>20 minutes</option>
+      <option value="30" data-i18n>30 minutes</option>
+      <option value="60" data-i18n>1 hour</option>
+      <option value="120" data-i18n>2 hours</option>
+      <option value="180" data-i18n>3 hours</option>
+      <option value="240" data-i18n>4 hours</option>
+      <option value="300" data-i18n>5 hours</option>
+      <option value="360" data-i18n>6 hours</option>
+      <option value="720" data-i18n>12 hours</option>
+      <option value="1440" data-i18n>1 day</option>
+    </select>
+  </p>
+</div>
+
+<div id="dialog-group" title="Edit a group" class="template dialog">
+	<input type="hidden" name="dialog-group-id" id="dialog-group-id" value="">
+	<input type="hidden" name="dialog-tab-id" id="dialog-tab-id" value="">
+  <p>
+    <label for="dialog-group-name" data-i18n>Displayed name</label>
+    <input type="text" name="dialog-group-name" id="dialog-group-name" value="">
+  </p>
+</div>
+
+<div id="dialog-script" title="Edit a task" class="template dialog">
+  <input type="hidden" name="dialog-script-id" id="dialog-script-id" value="">
+  <input type="hidden" name="dialog-script-tags" id="dialog-script-tags" value="">
+  <p>
+    <label for="dialog-script-name" data-i18n>Name</label>
+    <input type="text" name="dialog-script-name" id="dialog-script-name" value="">
+  </p>
+  <p>
+    <label for="dialog-script-enabled" data-i18n>Enabled</label>
+    <input type="checkbox" name="dialog-script-enabled" id="dialog-script-enabled"><label for="dialog-script-enabled"></label>
+  </p>
+  <p>
+    <label for="dialog-script-actions" data-i18n>Actions</label>
+    <select id="dialog-script-actions" name="dialog-script-actions" size="4"></select><br/>
+    <input type="button" value="Up" name="dialog-script-action-up" id="dialog-script-action-up">
+    <input type="button" value="Down" name="dialog-script-action-down" id="dialog-script-action-down">
+    <input type="button" value="Delete" name="dialog-script-action-remove" id="dialog-script-action-remove">
+  </p>
+  <p>
+    <p>
+      <label for="dialog-script-action-list" data-i18n>Add action</label>
+      <select id="dialog-script-action-list" name="dialog-script-action-list"></select>
+    </p>
+    <p>
+      <input type="button" value="Add" name="dialog-script-action-add" id="dialog-script-action-add">
+    </p>
+  </p>
+</div>
+
+<div id="dialog-schedule" title="Edit a scheduled task" class="template dialog">
+  <input type="hidden" name="dialog-schedule-id" id="dialog-schedule-id" value="">
+  <p>
+    <label for="dialog-schedule-name" data-i18n>Name</label>
+    <input type="text" name="dialog-schedule-name" id="dialog-schedule-name" value="">
+  </p>
+  <p>
+    <label for="dialog-schedule-enabled" data-i18n>Enabled</label>
+    <input type="checkbox" name="dialog-schedule-enabled" id="dialog-schedule-enabled"><label for="dialog-schedule-enabled"></label>
+  </p>
+  <p>
+    <label for="dialog-schedule-script" data-i18n>Task to run</label>
+    <select id="dialog-schedule-script" name="dialog-schedule-script"></select>
+  </p>
+  <p>
+    <label for="dialog-schedule-date" data-i18n>Date</label>
+    <input type="text" id="dialog-schedule-date" name="dialog-schedule-date">
+  </p>
+  <p>
+    <label for="dialog-schedule-hhmm" data-i18n>Time</label>
+    <select id="dialog-schedule-hh" name="dialog-schedule-hh">
+      <option value="0">00</option>
+      <option value="1">01</option>
+      <option value="2">02</option>
+      <option value="3">03</option>
+      <option value="4">04</option>
+      <option value="5">05</option>
+      <option value="6">06</option>
+      <option value="7">07</option>
+      <option value="8">08</option>
+      <option value="9">09</option>
+      <option value="10">10</option>
+      <option value="11">11</option>
+      <option value="12">12</option>
+      <option value="13">13</option>
+      <option value="14">14</option>
+      <option value="15">15</option>
+      <option value="16">16</option>
+      <option value="17">17</option>
+      <option value="18">18</option>
+      <option value="19">19</option>
+      <option value="20">20</option>
+      <option value="21">21</option>
+      <option value="22">22</option>
+      <option value="23">23</option>
+    </select>:
+    <select id="dialog-schedule-mm" name="dialog-schedule-mm">
+      <option value="0">00</option>
+      <option value="1">01</option>
+      <option value="2">02</option>
+      <option value="3">03</option>
+      <option value="4">04</option>
+      <option value="5">05</option>
+      <option value="6">06</option>
+      <option value="7">07</option>
+      <option value="8">08</option>
+      <option value="9">09</option>
+      <option value="10">10</option>
+      <option value="11">11</option>
+      <option value="12">12</option>
+      <option value="13">13</option>
+      <option value="14">14</option>
+      <option value="15">15</option>
+      <option value="16">16</option>
+      <option value="17">17</option>
+      <option value="18">18</option>
+      <option value="19">19</option>
+      <option value="20">20</option>
+      <option value="21">21</option>
+      <option value="22">22</option>
+      <option value="23">23</option>
+      <option value="24">24</option>
+      <option value="25">25</option>
+      <option value="26">26</option>
+      <option value="27">27</option>
+      <option value="28">28</option>
+      <option value="29">29</option>
+      <option value="30">30</option>
+      <option value="31">31</option>
+      <option value="32">32</option>
+      <option value="33">33</option>
+      <option value="34">34</option>
+      <option value="35">35</option>
+      <option value="36">36</option>
+      <option value="37">37</option>
+      <option value="38">38</option>
+      <option value="39">39</option>
+      <option value="40">40</option>
+      <option value="41">41</option>
+      <option value="42">42</option>
+      <option value="43">43</option>
+      <option value="44">44</option>
+      <option value="45">45</option>
+      <option value="46">46</option>
+      <option value="47">47</option>
+      <option value="48">48</option>
+      <option value="49">49</option>
+      <option value="50">50</option>
+      <option value="51">51</option>
+      <option value="52">52</option>
+      <option value="53">53</option>
+      <option value="54">54</option>
+      <option value="55">55</option>
+      <option value="56">56</option>
+      <option value="57">57</option>
+      <option value="58">58</option>
+      <option value="59">59</option>
+    </select>
+  </p>
+  <p>
+    <label for="dialog-schedule-repeat" data-i18n>Repeat</label>
+    <input type="checkbox" name="dialog-schedule-repeat" id="dialog-schedule-repeat"><label for="dialog-schedule-repeat"></label>
+  </p>
+  <p class="p-dialog-schedule-repeat-every">
+    <label for="dialog-schedule-repeat-every" data-i18n>Every</label>
+    <input type="text" name="dialog-schedule-repeat-value" id="dialog-schedule-repeat-value" value="">
+    <select id="dialog-schedule-repeat-every" name="dialog-schedule-repeat-every">
+      <option value="0" data-i18n>Minutes</option>
+      <option value="1" data-i18n>Hours</option>
+      <option value="2" data-i18n>Days</option>
+      <option value="3" data-i18n>Weekdays</option>
+      <option value="4" data-i18n>Months</option>
+      <option value="5" data-i18n>Years</option>
+    </select>
+  </p>
+  <p class="p-dialog-schedule-repeat-value-dow">
+    <p class="p-dialog-schedule-repeat-value-dow">
+      <label for="dialog-schedule-repeat-value-dow-2" data-i18n>Monday</label><input type="checkbox" name="dialog-schedule-repeat-value-dow-2" id="dialog-schedule-repeat-value-dow-2" day="2"><label for="dialog-schedule-repeat-value-dow-2"></label>
+    </p>
+    <p class="p-dialog-schedule-repeat-value-dow">
+      <label for="dialog-schedule-repeat-value-dow-4" data-i18n>Tuesday</label><input type="checkbox" name="dialog-schedule-repeat-value-dow-4" id="dialog-schedule-repeat-value-dow-4" day="4"><label for="dialog-schedule-repeat-value-dow-4"></label>
+    </p>
+    <p class="p-dialog-schedule-repeat-value-dow">
+      <label for="dialog-schedule-repeat-value-dow-8" data-i18n>Wednesday</label><input type="checkbox" name="dialog-schedule-repeat-value-dow-8" id="dialog-schedule-repeat-value-dow-8" day="8"><label for="dialog-schedule-repeat-value-dow-8"></label>
+    </p>
+    <p class="p-dialog-schedule-repeat-value-dow">
+      <label for="dialog-schedule-repeat-value-dow-16" data-i18n>Thursday</label><input type="checkbox" name="dialog-schedule-repeat-value-dow-16" id="dialog-schedule-repeat-value-dow-16" day="16"><label for="dialog-schedule-repeat-value-dow-16"></label>
+    </p>
+    <p class="p-dialog-schedule-repeat-value-dow">
+      <label for="dialog-schedule-repeat-value-dow-32" data-i18n>Friday</label><input type="checkbox" name="dialog-schedule-repeat-value-dow-32" id="dialog-schedule-repeat-value-dow-32" day="32"><label for="dialog-schedule-repeat-value-dow-32"></label>
+    </p>
+    <p class="p-dialog-schedule-repeat-value-dow">
+      <label for="dialog-schedule-repeat-value-dow-64" data-i18n>Saturday</label><input type="checkbox" name="dialog-schedule-repeat-value-dow-64" id="dialog-schedule-repeat-value-dow-64" day="64"><label for="dialog-schedule-repeat-value-dow-64"></label>
+    </p>
+    <p class="p-dialog-schedule-repeat-value-dow">
+      <label for="dialog-schedule-repeat-value-dow-1" data-i18n>Sunday</label><input type="checkbox" name="dialog-schedule-repeat-value-dow-1" id="dialog-schedule-repeat-value-dow-1" day="1"><label for="dialog-schedule-repeat-value-dow-1"></label>
+    </p>
+  </p>
+  <p class="p-dialog-schedule-remove-after-done">
+    <label for="dialog-schedule-remove-after-done" data-i18n>Remove when finished</label>
+    <input type="checkbox" name="dialog-schedule-remove-after-done" id="dialog-schedule-remove-after-done"><label for="dialog-schedule-remove-after-done"></label>
+  </p>
+</div>
+
+<div id="dialog-action" title="Edit an action" class="template dialog">
+  <input type="hidden" name="dialog-action-id" id="dialog-action-id" value="">
+  <p>
+    <label for="dialog-action-name" data-i18n>Name</label>
+    <input type="text" name="dialog-action-name" id="dialog-action-name" value="">
+  </p>
+  <p>
+    <label for="dialog-action-type" data-i18n>Type</label>
+    <select id="dialog-action-type" name="dialog-action-type">
+      <option value="0" data-i18n>Set switch status</option>
+      <option value="1" data-i18n>Toggle switch</option>
+      <option value="2" data-i18n>Set dimmer status</option>
+      <option value="3" data-i18n>Set heater status</option>
+      <option value="77" data-i18n>Run script</option>
+      <option value="88" data-i18n>Sleep (milliseconds)</option>
+      <option value="99" data-i18n>Internal server command</option>
+    </select>
+  </p>
+  <p>
+    <label for="dialog-action-device" data-i18n>Device</label>
+    <select id="dialog-action-device" name="dialog-action-device"></select>
+  </p>
+  <p>
+    <label for="dialog-action-switcher" data-i18n>Switch</label>
+    <select id="dialog-action-switcher" name="dialog-action-switcher"></select>
+  </p>
+  <p>
+    <label for="dialog-action-dimmer" data-i18n>Dimmer</label>
+    <select id="dialog-action-dimmer" name="dialog-action-dimmer"></select>
+  </p>
+  <p>
+    <label for="dialog-action-heater" data-i18n>Heater</label>
+    <select id="dialog-action-heater" name="dialog-action-heater"></select>
+  </p>
+  <p>
+    <label for="dialog-action-script" data-i18n>Script</label>
+    <select id="dialog-action-script" name="dialog-action-script"></select>
+  </p>
+  <p id="p-dialog-action-params" class="hidden">
+    <label id="dialog-action-params" data-i18n>Additional parameters</label>
+  </p>
+  <p id="p-dialog-action-params-setswitcher" class="hidden">
+    <label for="dialog-action-params-setswitcher" data-i18n>Status</label>
+    <select id="dialog-action-params-setswitcher" name="dialog-action-params-setswitcher">
+      <option value="0" data-i18n>Off</option>
+      <option value="1" data-i18n>On</option>
+    </select>
+  </p>
+  <p id="p-dialog-action-params-value" class="hidden">
+    <label for="dialog-action-params-value" data-i18n>Value</label>
+    <input type="text" name="dialog-action-params-value" id="dialog-action-params-value" value="">
+  </p>
+</div>
+
+<div id="dialog-monitor" title="Monitor an element" class="template dialog">
+  <p class="p-monitor-since">
+    <label for="dialog-monitor-since-label" data-i18n>Monitor since</label>
+    <select id="dialog-monitor-since" name="dialog-monitor-since">
+      <option value="0" data-i18n>Last hour</option>
+      <option value="1" data-i18n>Last 2 hours</option>
+      <option value="2" data-i18n>Last 6 hours</option>
+      <option value="3" data-i18n>Last 12 hours</option>
+      <option value="4" data-i18n selected='true'>Last day</option>
+      <option value="5" data-i18n>Last 2 days</option>
+      <option value="6" data-i18n>Last 3 days</option>
+      <option value="7" data-i18n>Last week</option>
+      <option value="8" data-i18n>Last month</option>
+    </select>
+  </p>
+  <div id="dialog-chart" style="height:300px;width:400px;"></div>
+</div>

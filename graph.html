@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+  <title>Monitor</title>
+
+  <link rel="stylesheet" type="text/css" href="css/jquery.jqplot.min.css" />
+
+  <script type="text/javascript" src="js/jquery-2.1.1.min.js"></script>
+  <script type="text/javascript" src="js/jquery.jqplot.min.js"></script>
+  <script type="text/javascript" src="js/jqplot.highlighter.min.js"></script>
+  <script type="text/javascript" src="js/jqplot.cursor.min.js"></script>
+  <script type="text/javascript" src="js/jqplot.canvasTextRenderer.min.js"></script>
+  <script type="text/javascript" src="js/jqplot.canvasAxisLabelRenderer.min.js"></script>
+  <script type="text/javascript" src="js/jqplot.dateAxisRenderer.min.js"></script>
+  
+  <script type="text/javascript" src="js/i18next-1.7.4.min.js"></script>
+  <style type="text/css">
+    .centered {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+  </style>
+</head>
+<body>
+
+<div id="loading"><img src="images/loading.gif" class="centered" /></div>
+
+<script class="code" type="text/javascript">
+
+var prefix = '';
+
+function initConfig() {
+    $.ajax({
+        async: false,
+        type: 'GET',
+        url: 'config/config.json',
+        success: function(data) {
+            prefix = data.angharad_location;
+        },
+        fail: function() {
+            $('#message-'+deviceId).text($.t('Error getting config'));
+        }
+    });
+}
+
+function getUrlParameter(sParam) {
+  var sPageURL = window.location.search.substring(1);
+  var sURLVariables = sPageURL.split('&');
+  for (var i = 0; i < sURLVariables.length; i++) 
+  {
+    var sParameterName = sURLVariables[i].split('=');
+    if (sParameterName[0] == sParam) 
+    {
+      return sParameterName[1];
+    }
+  }
+}
+
+$(document).ready(function(){
+    
+    var device = getUrlParameter('device');
+    var switcher = getUrlParameter('switcher');
+    var sensor = getUrlParameter('sensor');
+    var dimmer = getUrlParameter('dimmer');
+    var heater = getUrlParameter('heater');
+    var startDate = getUrlParameter('startDate')?getUrlParameter('startDate'):'';
+    var unit = getUrlParameter('unit')==undefined?'':decodeURIComponent(getUrlParameter('unit'));
+    var url;
+    
+    $.i18n.init({fallbackLng:'en'});
+    
+    initConfig();
+    
+    url = prefix + '/MONITOR/'+device+'/'+switcher+'/'+sensor+'/'+dimmer+'/'+heater+'/'+startDate;
+    
+    var jqxhr = $.get( url, function(data) {
+        try {
+            var jsonData = $.parseJSON(data);
+            var dotMatrix = [];
+            
+            var monitor = jsonData.monitor;
+            $('#loading').remove();
+            $('body').append('<div id="chart" style="height:300px; width:400px;"></div>');
+            if (monitor.values.length > 0) {
+                for (var i=0; i<monitor.values.length; i++){
+                    var d = new Date(0);
+                    d.setUTCSeconds(monitor.values[i].date_time);
+                    dotMatrix.push([d, parseFloat(monitor.values[i].value)]); 
+                }
+                
+                var plot = $.jqplot('chart', [dotMatrix], {
+                    axes:{
+                        xaxis:{
+                            renderer:$.jqplot.DateAxisRenderer,
+                            tickOptions:{formatString:'%d/%m\n%H:%M'}
+                        },
+                        yaxis:{
+                            tickOptions:{formatString:'%.2f'+unit}
+                        }
+                    },
+                    highlighter:{
+                        show: true,
+                        sizeAdjust: 7.5
+                    },
+                    cursor:{
+                        show: false
+                    },
+                    series:[{showMarker:false}],
+                    seriesDefaults: {
+                        rendererOptions: {
+                            smooth: true
+                        }
+                    },
+                });
+            } else {
+                $('#loading').remove();
+                $('body').append('<div id="chart" style="height:300px; width:400px;"></div>');
+                $('#chart').text($.t('No data monitored'));
+            }
+        } catch (e) {
+            $('#loading').remove();
+            $('body').append('<div id="chart" style="height:300px; width:400px;"></div>');
+            $('#chart').text($.t('Error parsing data'));
+        }
+    })
+    .fail(function() {
+        $('#loading').remove();
+        $('body').append('<div id="chart" style="height:300px; width:400px;"></div>');
+        $('#chart').text($.t('Error getting monitor'));
+    });
+});
+</script>
+
+</body>
+
+</html>
