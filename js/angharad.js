@@ -1934,10 +1934,11 @@ function runScript(scriptId) {
   var response = sendGetRequest(url);
   
   if (response.result) {
-    logMessage(logTypeInfo, $.t('Script executed succesfully'));
+    logMessage(logTypeInfo, $.t('Script executed succesfully: ') + angharad.scripts[scriptId].name);
   } else {
-    logMessage(logTypeError, $.t('Error running script'));
+    logMessage(logTypeError, $.t('Error running script: ') + angharad.scripts[scriptId].name);
   }
+  refreshAllDevices(false);
 }
 
 /**
@@ -3176,23 +3177,8 @@ function deleteAction($action) {
  */
 function refreshAngharad(force) {
 	if (angharad.ready) {
-		// Refresh all devices
-		var url = globalConfig.angharad_location;
-    if (force) {
-      url += '/REFRESH/';
-    } else {
-      url += '/OVERVIEW/';
-    }
-		for (device in angharad.devices) {
-			var response = sendGetRequest(url + device);
-			if (response.result) {
-        angharad.device[response.json.device.name] = response.json.device;
-				refreshDevice(response.json.device.name);
-			} else {
-				logMessage(logTypeError, $.t('Unable to refresh information for device ')+device);
-			}
-		}
-		
+		refreshAllDevices(force);
+    
 		url = globalConfig.angharad_location + '/ACTIONS/';
 		var response = sendGetRequest(url);
 		if (response.result) {
@@ -3217,6 +3203,30 @@ function refreshAngharad(force) {
 			logMessage(logTypeError, $.t('Unable to refresh information for schedules'));
 		}
 	}
+}
+
+/**
+ * Refresh all angharad devices
+ */
+function refreshAllDevices(force) {
+	if (angharad.ready) {
+		// Refresh all devices
+		var url = globalConfig.angharad_location;
+    if (force) {
+      url += '/REFRESH/';
+    } else {
+      url += '/OVERVIEW/';
+    }
+		for (device in angharad.devices) {
+			var response = sendGetRequest(url + device);
+			if (response.result) {
+        angharad.device[response.json.device.name] = response.json.device;
+				refreshDevice(response.json.device.name);
+			} else {
+				logMessage(logTypeError, $.t('Unable to refresh information for device ')+device);
+			}
+		}
+  }
 }
 
 /**

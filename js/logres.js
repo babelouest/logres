@@ -41,6 +41,10 @@ var tabGroupTemplate = '<div id="div-group-%TAB%-%GROUP%">\n\
 	</div>\n\
 </div>\n';
 
+var logMessageTemplate = '<div class="log-message">\n\
+  <span class="log-message-timestamp %CLASS%">%TIMESTAMP%</span>\n\
+  <span class="log-message-text %CLASS%">%MESSAGE%</span>\n\
+</div>';
 /**
  * Entry point
  */
@@ -70,20 +74,20 @@ $(document).ready(function() {
 
 	initParametersTab();
 	
+	// Translate application
+	$(':root').i18n();
+	
+	/*$('*[data-i18n]').each(function() {
+		if ($(this).is('input')) {
+			$(this).attr('value', $.t($(this).attr('value')));
+		}
+	});*/
+
 	// When everything is loaded, run refresh every 5 minutes
 	setInterval(function() {
 		refresh(false);
 	}, 5*60*1000);
 	
-	// Translate application
-	$(':root').i18n();
-	
-	$('*[data-i18n]').each(function() {
-		if ($(this).is('input')) {
-			$(this).attr('value', $.t($(this).attr('value')));
-		}
-	});
-
 });
 
 /**
@@ -778,18 +782,29 @@ function logMessage(type, message) {
 	logManager.messages.push({type:type, message:message});
 	var $popup = $('#top-popup');
 	var $label = $('<label></label>');
+  var curDate = (new Date()).toLocaleString();
+  var logMessageClass = 'log-message-info';
 	switch(type) {
 		case logTypeInfo:
-			$label.addClass('log-message-info');
+			logMessageClass = 'log-message-info';
 			break;
 		case logTypeWarn:
-			$label.addClass('log-message-warn');
+			logMessageClass = 'log-message-warn';
 			break;
 		case logTypeError:
-			$label.addClass('log-message-error');
+			logMessageClass = 'log-message-error';
 			break;
 	}
-	$label.text(message);
+  $label.addClass(logMessageClass);
+  var html = logMessageTemplate.replace(/%TIMESTAMP%/g, curDate)
+                                .replace(/%MESSAGE%/g, message)
+                                .replace(/%CLASS%/g, logMessageClass);
+  while ($('#admin-logs-container > .log-message').length > 100) {
+    $('#admin-logs-container').find('.log-message').last().remove();
+  }
+	$('#admin-logs-container').prepend(html);
+  
+  $label.text(message);
 	$popup.html($label);
 	$popup.fadeIn().removeClass('hidden');
 	setTimeout(function() {

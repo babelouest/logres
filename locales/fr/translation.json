@@ -71,8 +71,8 @@
   "Next launch":"Prochain lancement",
   "Schedules for this task:":"Planifications pour cette tâche",
   "Error, unable to edit schedule":"Erreur, impossible d'éditer cette tâche planifiée",
-  "Error running script":"Erreur lors du lancement de la tâche",
-  "Script executed succesfully":"Tâche exécutée avec succès",
+  "Error running script: ":"Erreur lors du lancement de la tâche: ",
+  "Script executed succesfully: ":"Tâche exécutée avec succès: ",
   "Error updating script":"Erreur lors de la mise à jour de la tâche",
   "Error updating sensor":"Erreur lors de la mise à jour du capteur",
   "Error updating dimmer":"Erreur lors de la mise à jour du gradateur",
@@ -262,5 +262,6 @@
   "Monitor since:":"Afficher depuis",
   "Color plots":"Couleur des points",
   "New monitor":"Nouvelles mesures",
-  "Refresh monitor:":"Rafraîchir la mesure"
+  "Refresh monitor:":"Rafraîchir la mesure",
+  "Log messages":"Messages"
 }
