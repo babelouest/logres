@@ -113,8 +113,9 @@
   "Edit":"Modifier",
   "Move to group below":"Déplacer dans le groupe au dessous",
   "Move to group up":"Déplacer dans le groupe au dessus",
-  "Move below":"Descendre",
+  "Move down":"Descendre",
   "Move up":"Monter",
+  "Graph":"Graphique",
   "Remove from the dashboard":"Enlever du tableau de bord",
   "Music":"Musique",
   "Cameras":"Caméras",
@@ -263,5 +264,13 @@
   "Color plots":"Couleur des points",
   "New monitor":"Nouvelles mesures",
   "Refresh monitor:":"Rafraîchir la mesure",
-  "Log messages":"Messages"
+  "Log messages":"Messages",
+  "Last played songs":"Dernières chansons jouées",
+  "Song list":"Liste des chansons",
+  "Title":"Titre",
+  "Artist":"Artiste",
+  "Album artist":"Artiste de l'album",
+  "Album":"Album",
+  "Year":"Année",
+  "Language":"Langage"
 }

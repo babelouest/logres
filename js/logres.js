@@ -77,12 +77,6 @@ $(document).ready(function() {
 	// Translate application
 	$(':root').i18n();
 	
-	/*$('*[data-i18n]').each(function() {
-		if ($(this).is('input')) {
-			$(this).attr('value', $.t($(this).attr('value')));
-		}
-	});*/
-
 	// When everything is loaded, run refresh every 5 minutes
 	setInterval(function() {
 		refresh(false);
@@ -107,8 +101,8 @@ function initConfig() {
 			}
 	});
 
-	$.i18n.init({fallbackLng:'en'}).done(function() {
-		/* Context menus */			
+	$.i18n.init({fallbackLng:'en',getAsync: false}).done(function() {
+		/* Context menus */
 		$.contextMenu({
 			selector: '.admin-modify-no-dashboard',
 			trigger: 'left',

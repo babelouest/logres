@@ -72,11 +72,11 @@ var scriptsContainerTemplate = '<div id="div-container-script">\n\
 
 var scriptTemplate = '<div id="div-script-%NAME%" class="script %CLASS% group-script-%GROUPNAME% script-class data-element" data-an-position="%POSITION%" data-an-name="%SCRIPT%" data-an-id="%NAME%">\n\
 	<input type="button" class="admin-button %ADMINCLASS%" value="+" name="admin-script-%NAME%" id="admin-script-%NAME%" data-an-type="script" data-an-name="%SCRIPT%" data-an-tab="%TAB%" data-an-group="%GROUP%"/>\n\
+  <input type="button" name="script-%NAME%" id="script-%NAME%" value="%DISPLAY%" data-an-script="%GROUPNAME%" class="script-button">\n\
 	<a href="#" class="schedule-attached">\n\
-		<img src="images/schedule-off.png" alt="schedules" id="schedule-attached-%NAME%" class="schedule-attached-img"/>\n\
+		<img src="images/scheduled.png" alt="schedules" id="schedule-attached-%NAME%" class="schedule-attached-img"/>\n\
 		<span id="display-schedule-attached-%NAME%" class="display-schedule-attached"></span>\n\
 	</a>\n\
-  <input type="button" name="script-%NAME%" id="script-%NAME%" value="%DISPLAY%" data-an-script="%GROUPNAME%" class="script-button">\n\
 </div>\n';
 
 var scheduleHoverBlockTemplate = '<label id="schedule-hover-script-%NAME%">%DISPLAY%</label>\n';
@@ -121,7 +121,7 @@ var monitorTemplate = '<div id="monitor-%NAME%">\n\
   </div>\n\
   <div id="div-monitor-%NAME%" class="block">\n\
   <div id="div-monitor-add-element-%NAME%">\n\
-    <label for="monitor-add-element-%NAME%" class="title-display" data-i18n>Add an element:</label>\n\
+    <label for="monitor-add-element-%NAME%" class="title-display" data-i18n>%ADDELEMENT%</label>\n\
     <select id="monitor-add-element-%NAME%" name="monitor-add-element-%NAME%">\n\
     </select>\n\
     <select id="monitor-add-color-%NAME%" name="monitor-add-color-%NAME%">\n\
@@ -154,10 +154,10 @@ var monitorTemplate = '<div id="monitor-%NAME%">\n\
       <option value="#FFFF00" style="background:Yellow" data-i18n>Yellow</option>\n\
       <option value="#9ACD32" style="background:YellowGreen" data-i18n>Yellow Green</option>\n\
     </select>\n\
-    <input type="button" name="monitor-add-element-ok-%NAME%" id="monitor-add-element-ok-%NAME%" value="Add" data-an-name="%NAME%" data-i18n>\n\
+    <input type="button" name="monitor-add-element-ok-%NAME%" id="monitor-add-element-ok-%NAME%" value="%ADD%" data-an-name="%NAME%" data-i18n>\n\
   </div>\n\
   <div id="div-monitor-since-%NAME%">\n\
-    <label for="monitor-since-%NAME%" class="title-display" data-i18n>Monitor since:</label>\n\
+    <label for="monitor-since-%NAME%" class="title-display">%MONITORSINCE%</label>\n\
     <select id="monitor-since-%NAME%" name="monitor-since-%NAME%" data-an-name="%NAME%">\n\
       <option value="0" data-i18n>Last hour</option>\n\
       <option value="1" data-i18n>Last 2 hours</option>\n\
@@ -171,8 +171,8 @@ var monitorTemplate = '<div id="monitor-%NAME%">\n\
     </select>\n\
   </div>\n\
   <div id="div-monitor-reload-%NAME%">\n\
-    <label for="monitor-refresh-%NAME%" class="title-display" data-i18n>Refresh monitor:</label>\n\
-    <input type="button" name="monitor-refresh-%NAME%" id="monitor-refresh-%NAME%" value="Refresh" data-an-name="%NAME%" data-i18n>\n\
+    <label for="monitor-refresh-%NAME%" class="title-display" data-i18n>%REFRESHMONITOR%</label>\n\
+    <input type="button" name="monitor-refresh-%NAME%" id="monitor-refresh-%NAME%" value="%REFRESH%" data-an-name="%NAME%" data-i18n>\n\
   </div>\n\
   <div id="div-monitor-chart-%NAME%" class="monitor-chart"><div id="loading"><img src="images/loading.gif" class="centered" /></div></div>\n\
   <div id="div-monitor-series-%NAME%" class="monitor-series bootstrap-tagsinput">\n\
@@ -651,10 +651,15 @@ function loadMonitorTab() {
  */
 function displayMonitor($container, name, display) {
   var html = monitorTemplate.replace(/%NAME%/g, name)
+                            .replace(/%ADDELEMENT%/g, $.t('Add an element:'))
+                            .replace(/%MONITORSINCE%/g, $.t('Monitor since:'))
+                            .replace(/%REFRESHMONITOR%/g, $.t('Refresh monitor:'))
+                            .replace(/%REFRESH%/g, $.t('Refresh'))
+                            .replace(/%ADD%/g, $.t('Add'))
                             .replace(/%DISPLAY%/g, display);
   var nbMonitors = parseInt($container.attr('data-an-nb-elements'));
   var options = '';
-  
+
   // fille monitor-add-element- select with all switches, dimmers, heaters and sensors
   for (de in angharad.devices) {
     for (sw in angharad.device[de].sensors) {
@@ -2038,9 +2043,9 @@ function updateScriptHoverDisplay(curScript) {
 	$('.group-script-'+curScript.id).each(function() {
 		$(this).find('.label-script').text(curScript.name);
 		$(this).find('.display-schedule-attached').html(schedulesHtml);
-		if (hasSchedule) {
-			$(this).find('.schedule-attached-img').attr('src', 'images/schedule.png');
-		}
+		if (!hasSchedule) {
+			$(this).find('.schedule-attached').remove();
+    }
 	});
 }
 

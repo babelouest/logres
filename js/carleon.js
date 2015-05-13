@@ -50,7 +50,7 @@ var cameraGridPictureTemplate = '<li>\n\
 
 var mpcTemplate = '<div id="mpc-%NAME%" class="small-block data-element" data-an-name="%NAME%" data-an-mpc="%MPC%" data-an-position="%POSITION%">\n\
 	<input type="button" class="admin-button %ADMINCLASS%" value="+" name="admin-mpc-%NAME%" id="admin-mpc-%NAME%" data-an-type="mpc" data-an-name="%MPC%" data-an-tab="%TAB%" data-an-group="%GROUP%"/>\n\
-	<input type="button" name="toggle-mpc-%NAME%" id="toggle-mpc-%NAME%" value="Show" data-an-name="%MPC%" data-i18n >\n\
+	<input type="button" name="toggle-mpc-%NAME%" id="toggle-mpc-%NAME%" value="%SHOW%" data-an-name="%MPC%" >\n\
   <img id="mpc-status-%NAME%" src="images/media-disabled.png" alt="" class="mpc-status-%MPC%"/>\n\
   <label>%DISPLAY%</label>\n\
 	<div id="mpc-commands-%NAME%" class="hidden c-mpc-commands-%MPC%" data-an-state="0" data-an-mpc="%MPC%">\n\
@@ -76,7 +76,7 @@ var radioTemplate = '<div id="radio-%NAME%" class="small-block data-element" dat
 		<h3 data-i18n>%DISPLAY%</h3>\n\
 		<h4 data-i18n>Player</h4>\n\
 		<p>\n\
-			<input type="button" id="radio-stream-data-toggle-%NAME%" name="radio-toggle-%NAME%" data-an-name="%NAME%" value="Show" data-i18n />\n\
+			<input type="button" id="radio-stream-data-toggle-%NAME%" name="radio-toggle-%NAME%" data-an-name="%NAME%" value="%SHOW%" />\n\
 		</p>\n\
 		<div id="radio-stream-data-%NAME%" class="c-radio-stream-data-%RADIO%" data-an-radio="%RADIO%" data-an-state="0">\n\
 			<p id="p-radio-stream-%NAME%" class="radio">\n\
@@ -91,7 +91,7 @@ var radioTemplate = '<div id="radio-%NAME%" class="small-block data-element" dat
 			</p>\n\
 			<h4 id="h4-radio-data-%NAME%" data-i18n>Last played songs</h4>\n\
 			<p id="p-radio-data-toggle-%NAME%">\n\
-				<input type="button" id="radio-data-toggle-%NAME%" name="radio-data-toggle-%NAME%" data-an-name="%NAME%" value="Show" data-i18n />\n\
+				<input type="button" id="radio-data-toggle-%NAME%" name="radio-data-toggle-%NAME%" data-an-name="%NAME%" value="%SHOW%" />\n\
 			</p>\n\
 			<div id="radio-data-%NAME%" class="inside c-radio-data-%RADIO%" data-an-radio="%RADIO%" data-an-state="0">\n\
 				<p id="p-radio-list-songs-%NAME%" class="radio">\n\
@@ -646,7 +646,8 @@ function displayMpcInGroup(curMpc, tab, group, position) {
 														.replace(/%TAB%/g, tab)
 														.replace(/%GROUP%/g, group)
 														.replace(/%POSITION%/g, position)
-														.replace(/%ADMINCLASS%/g, adminClass);
+														.replace(/%ADMINCLASS%/g, adminClass)
+                            .replace(/%SHOW%/g, $.t('Show'));
 	
 	insertElementInGroup(html, $group, position);
 
@@ -853,7 +854,8 @@ function displayRadioInGroup(curRadio, tab, group, position) {
 														.replace(/%TAB%/g, tab)
 														.replace(/%GROUP%/g, group)
 														.replace(/%POSITION%/g, position)
-														.replace(/%ADMINCLASS%/g, adminClass);
+														.replace(/%ADMINCLASS%/g, adminClass)
+                            .replace(/%SHOW%/g, $.t('Show'));
 	
 	insertElementInGroup(html, $group, position);
 

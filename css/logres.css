@@ -269,13 +269,11 @@ input[type=checkbox]:checked + label {
 
 a.schedule-attached{
 	position:relative;
-	z-index:24;
 	color:#000;
 	text-decoration:none
 }
 
 a.schedule-attached:hover{
-	z-index:25;
 }
 
 a.schedule-attached span{
