@@ -19,15 +19,15 @@ var cameraTemplate = '<div id="camera-%NAME%" class="camera-%CAMERA% small-block
 	<p>\n\
 		<label class="camera-label" data-i18n>Pictures layout</label>\n\
 		<select name="camera-pictures-select-%NAME%" id="camera-pictures-select-%NAME%" data-an-camera="%CAMERA%" data-an-name="%NAME%" class="camera-list">\n\
-			<option value="list" id="camera-pictures-select-%NAME%-list" data-i18n>List</option>\n\
 			<option value="grid" id="camera-pictures-select-%NAME%-grid" data-i18n>Grid</option>\n\
+			<option value="list" id="camera-pictures-select-%NAME%-list" data-i18n>List</option>\n\
 		</select>\n\
 	</p>\n\
 	<p>\n\
 		<label class="camera-label" data-i18n>Pictures type</label>\n\
 		<select name="camera-switch-%NAME%" id="camera-switch-%NAME%" data-an-camera="%CAMERA%" class="camera-list">\n\
-			<option value="sched" id="camera-switch-%NAME%-sched" data-i18n>Scheduled</option>\n\
 			<option value="trigg" id="camera-switch-%NAME%-trigg" data-i18n>Triggered</option>\n\
+			<option value="sched" id="camera-switch-%NAME%-sched" data-i18n>Scheduled</option>\n\
 			<option value="stream" id="camera-switch-%NAME%-stream" data-i18n>Real-time stream</option>\n\
 		</select>\n\
 	</p>\n\
@@ -343,6 +343,8 @@ function displayCameraInGroup(curCamera, tab, group, position) {
 			triggerImagesListChange(name, camera);
 		}
 	});
+  
+  $('#camera-pictures-select-'+curName).trigger('change');
 }
 
 /**
