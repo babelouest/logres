@@ -23,16 +23,6 @@ var logTypeWarn  = 1;
 var logTypeError = 2;
 var logManager = {};
 
-var tabContent = [];
-tabContent[tabDashboardId] = [];
-tabContent[tabSwitchesDimmersId] = [];
-tabContent[tabHeatersId] = [];
-tabContent[tabSensorsId] = [];
-tabContent[tabCamerasId] = [];
-tabContent[tabMusicId] = [];
-tabContent[tabScriptsSchedulesId] = [];
-tabContent[tabMonitorsId] = [];
-
 var tabGroupTemplate = '<div id="div-group-%TAB%-%GROUP%">\n\
 	<input type="button" class="admin-button admin-group" value="+" name="admin-group-%TAB%-%GROUP%" id="admin-group-%TAB%-%GROUP%" data-an-type="group" data-an-tab="%TAB%" data-an-group="%GROUP%"/>\n\
 	<label id="container-%TAB%-%GROUP%-label">%DISPLAY%</label>\n\
@@ -45,277 +35,256 @@ var logMessageTemplate = '<div class="log-message">\n\
   <span class="log-message-timestamp %CLASS%">%TIMESTAMP%</span>\n\
   <span class="log-message-text %CLASS%">%MESSAGE%</span>\n\
 </div>';
+
 /**
  * Entry point
  */
 $(document).ready(function() {
-	
-	initConfig();
-	
-	initEvents();
-	
-	gatherInformations();
-	
-	initDashboardTab();
-
-	initSwitchesTab();
-
-	initHeatersTab();
-
-	initSensorsTab();
-	
-	initCameraTab();
-	
-	initMusicTab();
-	
-	initScriptsTab();
-	
-	initMonitorTab()
-
-	initParametersTab();
-	
-	// Translate application
-	$(':root').i18n();
-	
-	// When everything is loaded, run refresh every 5 minutes
-	setInterval(function() {
-		refresh(false);
-	}, 5*60*1000);
+  var url = 'config/config.json';
+  $.get( url, function(data) {
+    globalConfig = data;
+    
+    $.i18n.init({fallbackLng:'en'}).done(function() {
+      $('#admin-profile-new').val('');
+      
+      globalConfig.currentTab = tabDashboardId;
+      logManager.ready = true;
+      logManager.messages = [];
+      
+      initContextMenus();
+      
+      initEvents();
+      
+      gatherInformations();
+      
+      // Translate application
+      $(':root').i18n();
+      
+      // When everything is loaded, run refresh every 5 minutes
+      setInterval(function() {
+        refresh(false);
+      }, 5*60*1000);
+    });
+    
+  })
+  .fail(function() {
+    logMessage(logTypeError, $.t('Error getting configuration'));
+  });
 	
 });
 
 /**
- * Initialize configuration
- * global configuration
- * i18n
+ * Initialize context menus
  */
-function initConfig() {
-	$.ajax({
-			async: false,
-			type: 'GET',
-			url: 'config/config.json',
-			success: function(data) {
-					globalConfig = data;
-			},
-			fail: function() {
-			}
-	});
+function initContextMenus() {
+  /* Context menus */
+  $.contextMenu({
+    selector: '.admin-modify-no-dashboard',
+    trigger: 'left',
+    callback: function (key, options) {
+      if (key == 'graph') {
+        monitorElement($(this));
+      } else if (key == 'edit') {
+        if ($(this).attr('name').indexOf('admin-sensor-') == 0) {
+          editSensor($(this));
+        } else if ($(this).attr('name').indexOf('admin-switch-') == 0) {
+          editSwitch($(this));
+        } else if ($(this).attr('name').indexOf('admin-dimmer-') == 0) {
+          editDimmer($(this));
+        } else if ($(this).attr('name').indexOf('admin-heater-') == 0) {
+          editHeater($(this));
+        }
+      } else if (key == 'add') {
+        addToTab($(this), tabDashboardId);
+      } else if (key == 'remove') {
+        removeFromGroup($(this));
+      } else if (key == 'moveUp') {
+        moveInGroup($(this), moveUp);
+      } else if (key == 'moveDown') {
+        moveInGroup($(this), moveDown);
+      } else if (key == 'moveGroupUp') {
+        moveToGroup($(this), moveUp);
+      } else if (key == 'moveGroupDown') {
+        moveToGroup($(this), moveDown);
+      }
+    },
+    items: {
+      'edit': {name: $.t('Edit'), icon: 'edit'},
+      'add': {name: $.t('Add to dashboard'), icon: 'add'},
+      'graph': {name: $.t('Graph'), icon: 'graph'},
+      'remove': {name: $.t('Remove from this group'), icon: 'delete'},
+      'moveUp': {name: $.t('Move up'), icon: 'moveUp'},
+      'moveDown': {name: $.t('Move down'), icon: 'moveDown'},
+      'moveGroupUp': {name: $.t('Move to group up'), icon: 'moveGroupUp'},
+      'moveGroupDown': {name: $.t('Move to group below'), icon: 'moveGroupDown'},
+    }
+  });
 
-	$.i18n.init({fallbackLng:'en',getAsync: false}).done(function() {
-		/* Context menus */
-		$.contextMenu({
-			selector: '.admin-modify-no-dashboard',
-			trigger: 'left',
-			callback: function (key, options) {
-				if (key == 'graph') {
-					monitorElement($(this));
-				} else if (key == 'edit') {
-					if ($(this).attr('name').indexOf('admin-sensor-') == 0) {
-						editSensor($(this));
-					} else if ($(this).attr('name').indexOf('admin-switch-') == 0) {
-						editSwitch($(this));
-					} else if ($(this).attr('name').indexOf('admin-dimmer-') == 0) {
-						editDimmer($(this));
-					} else if ($(this).attr('name').indexOf('admin-heater-') == 0) {
-						editHeater($(this));
-					}
-				} else if (key == 'add') {
-					addToTab($(this), tabDashboardId);
-				} else if (key == 'remove') {
-					removeFromGroup($(this));
-				} else if (key == 'moveUp') {
-					moveInGroup($(this), moveUp);
-				} else if (key == 'moveDown') {
-					moveInGroup($(this), moveDown);
-				} else if (key == 'moveGroupUp') {
-					moveToGroup($(this), moveUp);
-				} else if (key == 'moveGroupDown') {
-					moveToGroup($(this), moveDown);
-				}
-			},
-			items: {
-				'edit': {name: $.t('Edit'), icon: 'edit'},
-				'add': {name: $.t('Add to dashboard'), icon: 'add'},
-				'graph': {name: $.t('Graph'), icon: 'graph'},
-				'remove': {name: $.t('Remove from this group'), icon: 'delete'},
-				'moveUp': {name: $.t('Move up'), icon: 'moveUp'},
-				'moveDown': {name: $.t('Move down'), icon: 'moveDown'},
-				'moveGroupUp': {name: $.t('Move to group up'), icon: 'moveGroupUp'},
-				'moveGroupDown': {name: $.t('Move to group below'), icon: 'moveGroupDown'},
-			}
-		});
-
-		$.contextMenu({
-			selector: '.admin-modify-dashboard',
-			trigger: 'left',
-			callback: function (key, options) {
-				if (key == 'graph') {
-					monitorElement($(this));
-				} else if (key == 'edit') {
-					if ($(this).attr('name').indexOf('admin-sensor-') == 0) {
-						editSensor($(this));
-					} else if ($(this).attr('name').indexOf('admin-switch-') == 0) {
-						editSwitch($(this));
-					} else if ($(this).attr('name').indexOf('admin-dimmer-') == 0) {
-						editDimmer($(this));
-					} else if ($(this).attr('name').indexOf('admin-heater-') == 0) {
-						editHeater($(this));
-					}
-				} else if (key == 'remove') {
-					removeFromGroup($(this));
-				} else if (key == 'moveUp') {
-					moveInGroup($(this), moveUp);
-				} else if (key == 'moveDown') {
-					moveInGroup($(this), moveDown);
-				} else if (key == 'moveGroupUp') {
-					moveToGroup($(this), moveUp);
-				} else if (key == 'moveGroupDown') {
-					moveToGroup($(this), moveDown);
-				}
-			},
-			items: {
-				'edit': {name: $.t('Edit'), icon: 'edit'},
-				'graph': {name: $.t('Graph'), icon: 'graph'},
-				'remove': {name: $.t('Remove from the dashboard'), icon: 'delete'},
-				'moveUp': {name: $.t('Move up'), icon: 'moveUp'},
-				'moveDown': {name: $.t('Move down'), icon: 'moveDown'},
-				'moveGroupUp': {name: $.t('Move to group up'), icon: 'moveGroupUp'},
-				'moveGroupDown': {name: $.t('Move to group below'), icon: 'moveGroupDown'},
-			}
-		});
-		
-		$.contextMenu({
-			selector: '.admin-modify-delete-no-dashboard',
-			trigger: 'left',
-			callback: function (key, options) {
-				if (key == 'edit') {
-					if ($(this).attr('data-an-type') == 'action') {
-						editAction($(this));
-					} else if ($(this).attr('data-an-type') == 'script') {
-						editScript($(this));
-					}
-				} else if (key == 'delete') {
-					if ($(this).attr('data-an-type') == 'action') {
-						deleteAction($(this));
-					} else if ($(this).attr('data-an-type') == 'script') {
-						deleteScript($(this));
-					}
-				} else if (key == 'addTab0') {
-					addToTab($(this), tabDashboardId);
-				} else if (key == 'addTab1') {
-					addToTab($(this), tabSwitchesDimmersId);
-				} else if (key == 'addTab2') {
-					addToTab($(this), tabHeatersId);
-				} else if (key == 'addTab3') {
-					addToTab($(this), tabSensorsId);
-				} else if (key == 'addTab4') {
-					addToTab($(this), tabCamerasId);
-				} else if (key == 'addTab5') {
-					addToTab($(this), tabMusicId);
-				}
-			},
-			items: {
-				'edit': {name: $.t('Edit'), icon: 'edit'},
-				'delete': {name: $.t('Delete'), icon: 'delete'},
-				'addTab': {
-					name: $.t('Add to another tab'), 
-					icon: 'add',
-					items: {
-						'addTab0': {name: $.t('Dashboard') },
-						'addTab1': {name: $.t('Lights and switches') },
-						'addTab2': {name: $.t('Heaters') },
-						'addTab3': {name: $.t('Sensors') },
-						'addTab4': {name: $.t('Cameras') },
-						'addTab5': {name: $.t('Music') },
-					}
-				},
-			}
-		});
-
-		$.contextMenu({
-			selector: '.admin-modify-delete-dashboard',
-			trigger: 'left',
-			callback: function (key, options) {
-				if (key == 'edit') {
-					if ($(this).attr('data-an-type') == 'action') {
-						editAction($(this));
-					} else if ($(this).attr('data-an-type') == 'script') {
-						editScript($(this));
-					}
-				} else if (key == 'delete') {
-					if ($(this).attr('data-an-type') == 'action') {
-						deleteAction($(this));
-					} else if ($(this).attr('data-an-type') == 'script') {
-						deleteScript($(this));
-					}
-				} else if (key == 'removeDashboard') {
-					removeFromGroup($(this));
-				} else if (key == 'moveUp') {
-					moveInGroup($(this), moveUp);
-				} else if (key == 'moveDown') {
-					moveInGroup($(this), moveDown);
-				} else if (key == 'moveGroupUp') {
-					moveToGroup($(this), moveUp);
-				} else if (key == 'moveGroupDown') {
-					moveToGroup($(this), moveDown);
-				}
-			},
-			items: {
-				'edit': {name: $.t('Edit'), icon: 'edit'},
-				'delete': {name: $.t('Delete'), icon: 'delete'},
-				'removeDashboard': {name: $.t('Remove from the Dashboard'), icon: 'delete'},
-				'moveUp': {name: $.t('Move up'), icon: 'moveUp'},
-				'moveDown': {name: $.t('Move below'), icon: 'moveDown'},
-				'moveGroupUp': {name: $.t('Move to group up'), icon: 'moveGroupUp'},
-				'moveGroupDown': {name: $.t('Move to group below'), icon: 'moveGroupDown'},
-			}
-		});
-		
-		$.contextMenu({
-			selector: '.admin-modify-delete',
-			trigger: 'left',
-			callback: function (key, options) {
-				if (key == 'edit') {
-					if ($(this).attr('data-an-type') == 'action') {
-						editAction($(this));
-					} else if ($(this).attr('data-an-type') == 'schedule') {
-						editSchedule($(this).attr('data-an-name'));
-					}
-				} else if (key == 'delete') {
-					if ($(this).attr('data-an-type') == 'action') {
-						deleteAction($(this));
-					} else if ($(this).attr('data-an-type') == 'schedule') {
-						deleteSchedule($(this).attr('data-an-name'));
-					}
-				}
-			},
-			items: {
-				'edit': {name: $.t('Edit'), icon: 'edit'},
-				'delete': {name: $.t('Delete'), icon: 'delete'},
-			}
-		});
-		
-		$.contextMenu({
-			selector: '.admin-group',
-			trigger: 'left',
-			callback: function (key, options) {
-				if (key == 'edit') {
-					editGroupDialog($(this).attr('data-an-tab'), $(this).attr('data-an-group'));
-				} else if (key == 'delete') {
-					deleteGroup($(this).attr('data-an-tab'), $(this).attr('data-an-group'));
-				}
-			},
-			items: {
-				'edit': {name: $.t('Edit group'), icon: 'edit'},
-				'delete': {name: $.t('Delete group'), icon: 'delete'},
-			}
-		});
-	});
+  $.contextMenu({
+    selector: '.admin-modify-dashboard',
+    trigger: 'left',
+    callback: function (key, options) {
+      if (key == 'graph') {
+        monitorElement($(this));
+      } else if (key == 'edit') {
+        if ($(this).attr('name').indexOf('admin-sensor-') == 0) {
+          editSensor($(this));
+        } else if ($(this).attr('name').indexOf('admin-switch-') == 0) {
+          editSwitch($(this));
+        } else if ($(this).attr('name').indexOf('admin-dimmer-') == 0) {
+          editDimmer($(this));
+        } else if ($(this).attr('name').indexOf('admin-heater-') == 0) {
+          editHeater($(this));
+        }
+      } else if (key == 'remove') {
+        removeFromGroup($(this));
+      } else if (key == 'moveUp') {
+        moveInGroup($(this), moveUp);
+      } else if (key == 'moveDown') {
+        moveInGroup($(this), moveDown);
+      } else if (key == 'moveGroupUp') {
+        moveToGroup($(this), moveUp);
+      } else if (key == 'moveGroupDown') {
+        moveToGroup($(this), moveDown);
+      }
+    },
+    items: {
+      'edit': {name: $.t('Edit'), icon: 'edit'},
+      'graph': {name: $.t('Graph'), icon: 'graph'},
+      'remove': {name: $.t('Remove from the dashboard'), icon: 'delete'},
+      'moveUp': {name: $.t('Move up'), icon: 'moveUp'},
+      'moveDown': {name: $.t('Move down'), icon: 'moveDown'},
+      'moveGroupUp': {name: $.t('Move to group up'), icon: 'moveGroupUp'},
+      'moveGroupDown': {name: $.t('Move to group below'), icon: 'moveGroupDown'},
+    }
+  });
   
-  $('#admin-profile-new').val('');
-	globalConfig.currentTab = tabDashboardId;
-	logManager.ready = true;
-	logManager.messages = [];
+  $.contextMenu({
+    selector: '.admin-modify-delete-no-dashboard',
+    trigger: 'left',
+    callback: function (key, options) {
+      if (key == 'edit') {
+        if ($(this).attr('data-an-type') == 'action') {
+          editAction($(this));
+        } else if ($(this).attr('data-an-type') == 'script') {
+          editScript($(this));
+        }
+      } else if (key == 'delete') {
+        if ($(this).attr('data-an-type') == 'action') {
+          deleteAction($(this));
+        } else if ($(this).attr('data-an-type') == 'script') {
+          deleteScript($(this));
+        }
+      } else if (key == 'addTab0') {
+        addToTab($(this), tabDashboardId);
+      } else if (key == 'addTab1') {
+        addToTab($(this), tabSwitchesDimmersId);
+      } else if (key == 'addTab2') {
+        addToTab($(this), tabHeatersId);
+      } else if (key == 'addTab3') {
+        addToTab($(this), tabSensorsId);
+      } else if (key == 'addTab4') {
+        addToTab($(this), tabCamerasId);
+      } else if (key == 'addTab5') {
+        addToTab($(this), tabMusicId);
+      }
+    },
+    items: {
+      'edit': {name: $.t('Edit'), icon: 'edit'},
+      'delete': {name: $.t('Delete'), icon: 'delete'},
+      'addTab': {
+        name: $.t('Add to another tab'), 
+        icon: 'add',
+        items: {
+          'addTab0': {name: $.t('Dashboard') },
+          'addTab1': {name: $.t('Lights and switches') },
+          'addTab2': {name: $.t('Heaters') },
+          'addTab3': {name: $.t('Sensors') },
+          'addTab4': {name: $.t('Cameras') },
+          'addTab5': {name: $.t('Music') },
+        }
+      },
+    }
+  });
+
+  $.contextMenu({
+    selector: '.admin-modify-delete-dashboard',
+    trigger: 'left',
+    callback: function (key, options) {
+      if (key == 'edit') {
+        if ($(this).attr('data-an-type') == 'action') {
+          editAction($(this));
+        } else if ($(this).attr('data-an-type') == 'script') {
+          editScript($(this));
+        }
+      } else if (key == 'delete') {
+        if ($(this).attr('data-an-type') == 'action') {
+          deleteAction($(this));
+        } else if ($(this).attr('data-an-type') == 'script') {
+          deleteScript($(this));
+        }
+      } else if (key == 'removeDashboard') {
+        removeFromGroup($(this));
+      } else if (key == 'moveUp') {
+        moveInGroup($(this), moveUp);
+      } else if (key == 'moveDown') {
+        moveInGroup($(this), moveDown);
+      } else if (key == 'moveGroupUp') {
+        moveToGroup($(this), moveUp);
+      } else if (key == 'moveGroupDown') {
+        moveToGroup($(this), moveDown);
+      }
+    },
+    items: {
+      'edit': {name: $.t('Edit'), icon: 'edit'},
+      'delete': {name: $.t('Delete'), icon: 'delete'},
+      'removeDashboard': {name: $.t('Remove from the Dashboard'), icon: 'delete'},
+      'moveUp': {name: $.t('Move up'), icon: 'moveUp'},
+      'moveDown': {name: $.t('Move below'), icon: 'moveDown'},
+      'moveGroupUp': {name: $.t('Move to group up'), icon: 'moveGroupUp'},
+      'moveGroupDown': {name: $.t('Move to group below'), icon: 'moveGroupDown'},
+    }
+  });
+  
+  $.contextMenu({
+    selector: '.admin-modify-delete',
+    trigger: 'left',
+    callback: function (key, options) {
+      if (key == 'edit') {
+        if ($(this).attr('data-an-type') == 'action') {
+          editAction($(this));
+        } else if ($(this).attr('data-an-type') == 'schedule') {
+          editSchedule($(this).attr('data-an-name'));
+        }
+      } else if (key == 'delete') {
+        if ($(this).attr('data-an-type') == 'action') {
+          deleteAction($(this));
+        } else if ($(this).attr('data-an-type') == 'schedule') {
+          deleteSchedule($(this).attr('data-an-name'));
+        }
+      }
+    },
+    items: {
+      'edit': {name: $.t('Edit'), icon: 'edit'},
+      'delete': {name: $.t('Delete'), icon: 'delete'},
+    }
+  });
+  
+  $.contextMenu({
+    selector: '.admin-group',
+    trigger: 'left',
+    callback: function (key, options) {
+      if (key == 'edit') {
+        editGroupDialog($(this).attr('data-an-tab'), $(this).attr('data-an-group'));
+      } else if (key == 'delete') {
+        deleteGroup($(this).attr('data-an-tab'), $(this).attr('data-an-group'));
+      }
+    },
+    items: {
+      'edit': {name: $.t('Edit group'), icon: 'edit'},
+      'delete': {name: $.t('Delete group'), icon: 'delete'},
+    }
+  });
 }
 
 /**
@@ -364,27 +333,14 @@ function initEvents() {
   
   $input.bind("enterKey",function(e) {
     $label = $('#admin-profile-new-result');
-    var response = addProfile($(this).val());
-    if (response.result) {
-      var message = $.t('Profile')+' '+$(this).val()+' '+$.t('created');
+    addProfile($(this).val(), function(response) {
 			$('#admin-profiles-list').append($('<option>', {
 				value:response.json.profile.id,
 				text:response.json.profile.display,
 				selected:false
 			}));
-      $(this).val('');
-    } else {
-      var message = $.t('Error adding profile');
-    }
-    
-    $label.text(message);
-    $label.fadeIn().removeClass('hidden');
-    setTimeout(function() {
-      $label.fadeOut('fast', function() {
-        $label.addClass('hidden');
-        $label.text('');
-      });
-    }, 10*1000);
+      logMessage(logTypeInfo, $.t('Profile added succesfully'));
+    });
   });
   
   $input.keyup(function(e) {
@@ -400,27 +356,21 @@ function initEvents() {
     $label = $('#admin-rename-profile-display');
 		var profile = getCurrentProfile();
 		profile.display = $(this).val();
-    if (updateProfile(profile)) {
-      var message = $.t('Profile')+' '+$(this).val()+' '+$.t('renamed');
+    var self = $(this);
+    updateProfile(profile, function(profile) {
+      var message = $.t('Profile')+' '+self.val()+' '+$.t('renamed');
 			$('#admin-profiles-list').find('option').each(function() {
 				if ($(this).val() == profile.id) {
 					$(this).text(profile.display);
-				}
+          logMessage(logTypeInfo, $.t('Profile renamed'));
+				} else {
+          logMessage(logTypeError, $.t('Unable to rename profile'));
+        }
 			});
 			$('#admin-cur-profile-display').text(profile.display);
 			$('#dashboard-title').text(profile.display);
-    } else {
-      var message = $.t('Error renamimg profile');
-    }
+    });
     
-    $label.text(message);
-    $label.fadeIn().removeClass('hidden');
-    setTimeout(function() {
-      $label.fadeOut('fast', function() {
-        $label.addClass('hidden');
-        $label.text('');
-      });
-    }, 10*1000);
   });
   
   $input.keyup(function(e) {
@@ -444,12 +394,21 @@ function initEvents() {
 			var profile = getCurrentProfile();
 			
       profile.default = 1;
-      response = sendPostRequest(url, {action:'modifyprofile', profile:JSON.stringify(profile)});
-      logMessage(logTypeInfo, $.t('Current profile set to default'));
-
-      if (!response.result) {
+      $.post(url, {action:'modifyprofile', profile:JSON.stringify(profile)}, function(data) {
+        var response = parseResponse(data);
+        if (response.result) {
+          logMessage(logTypeInfo, $.t('Current profile set to default'));
+          $(this).prop('checked', true);
+        } else {
+          logMessage(logTypeError, $.t('Error setting current profile to default'));
+          $(this).prop('checked', false);
+        }
+      })
+      .fail(function() {
+        logMessage(logTypeError, $.t('Error setting current profile to default'));
         $(this).prop('checked', false);
-      }
+      });
+
     }
   });
   
@@ -476,9 +435,9 @@ function initEvents() {
  * Get all overviews from angharad server and carleon environment
  */
 function gatherInformations() {
-	gatherAngharadInformations();
+  
+	gatherCarleonInformations(gatherAngharadInformations);
 	
-	gatherCarleonInformations();
 }
 
 /**
@@ -495,39 +454,27 @@ function loadTab(tabId) {
 }
 
 /**
- * Return JSON result from a REST webservice in sync mode using a HTTP GET, so no data is returned until function is complete
+ * Parse a webservice response and return a response object 
  */
-function sendGetRequest(url) {
-	var toReturn = { url: url };
-  $.ajax({
-    async: false,
-    type: 'GET',
-    url: url,
-    success: function(data) {
-      try {
-        var jsonResult = $.parseJSON(data);
-        if (jsonResult.result !== undefined && jsonResult.result == 'ok') {
-          toReturn.result = true;
-        } else {
-          toReturn.result = false;
-          toReturn.reason = 'error';
-        }
-        toReturn.json = jsonResult;
-      } catch (err) {
-        toReturn.result = false;
-        toReturn.reason = 'json_error';
-        toReturn.json = {};
-        toReturn.error = err;
-        toReturn.data = data;
-      }
-    },
-    fail: function() {
+function parseResponse(data) {
+  var toReturn = { };
+  try {
+    var jsonResult = $.parseJSON(data);
+    if (jsonResult.result !== undefined && jsonResult.result == 'ok') {
+      toReturn.result = true;
+    } else {
       toReturn.result = false;
-      toReturn.json = {};
-      toReturn.reason = 'network_error';
+      toReturn.reason = 'error';
     }
-  });
-	return toReturn;
+    toReturn.json = jsonResult;
+  } catch (err) {
+    toReturn.result = false;
+    toReturn.reason = 'json_error';
+    toReturn.json = {};
+    toReturn.error = err;
+    toReturn.data = data;
+  }
+  return toReturn;
 }
 
 /**
@@ -577,11 +524,10 @@ function addToTab($element, tab) {
   // Look for the first group in the dashboard
   // If there is no group in the dashboard, we add one called 'Dashboard'
   if (groups.length == 0) {
-    var newGroup = addGroup(tab, $.t('Dashboard'));
-    if (newGroup) {
+    addGroup(tab, $.t('Dashboard'), function(newGroup) {
       addGroupToTab(tab, newGroup.id, newGroup.display);
       groupId = newGroup.id;
-    }
+    });
   } else {
     groupId = groups[0].id;
   }
@@ -632,9 +578,19 @@ function getCurrentProfile() {
 /**
  * Add a profile
  */
-function addProfile(name) {
+function addProfile(name, callback) {
   var url = globalConfig.carleon_location + carleon.apps.profiles.url;
-  return sendPostRequest(url, {action:'addprofile', profile:name});
+  $.post(url, {action:'addprofile', profile:name}, function(data) {
+    var response = parseResponse(data);
+    if (response.result) {
+      callback(response);
+    } else {
+      logMessage(logTypeError, $.t('Error adding profile'));
+    }
+  })
+  .fail(function() {
+    logMessage(logTypeError, $.t('Error adding profile'));
+  });
 }
 
 /**
@@ -643,41 +599,44 @@ function addProfile(name) {
 function removeCurrentProfile() {
 	var url = globalConfig.carleon_location + carleon.apps.profiles.url;
 	
-	var response = sendPostRequest(url, {action:'removeprofile', profile:globalConfig.profile.id});
-	
-	if (response.result) {
-		location.reload();
-	} else {
-		var $label = $('#admin-profile-remove-label');
-		$label.text($.t('Error while removing current profile'));
-		$label.removeClass('hidden');
-    setTimeout(function() {
-      $label.fadeOut('fast', function() {
-        $label.addClass('hidden');
-        $label.text('');
-      });
-    }, 10*1000);
-	}
+  $.post(url, {action:'removeprofile', profile:globalConfig.profile.id}, function(data) {
+    var response = parseResponse(data);
+    if (response.result) {
+      location.reload();
+    } else {
+      logMessage(logTypeError, $.t('Error while removing current profile'));
+    }
+  })
+  .fail(function() {
+    logMessage(logTypeError, $.t('Error while removing current profile'));
+  });
 }
 
 /**
  * Change the current profile with the new data
  */
-function updateProfile(profile) {
+function updateProfile(profile, callback) {
 	var url = globalConfig.carleon_location + carleon.apps.profiles.url;
-  var response = sendPostRequest(url, {action:'modifyprofile', profile:JSON.stringify(profile)});
-	if (response.result) {
-		globalConfig.profile = response.json.profile;
-		return true;
-	} else {
-		return false;
-	}
+  $.post(url, {action:'modifyprofile', profile:JSON.stringify(profile)}, function(data) {
+    var response = parseResponse(data);
+    if (response.result) {
+      globalConfig.profile = response.json.profile;
+      if (callback != undefined) {
+        callback(globalConfig.profile);
+      }
+    } else {
+      logMessage(logTypeError, $.t('Error '));
+    }
+  })
+  .fail(function() {
+    logMessage(logTypeError, $.t('Error '));
+  });
 }
 
 /**
  * Add a group to the specified tab for the current profile
  */
-function addGroup(tab, groupName) {
+function addGroup(tab, groupName, callback) {
   var tabFound = false;
 	var profile = getCurrentProfile();
 	var newGroup = {};
@@ -698,18 +657,13 @@ function addGroup(tab, groupName) {
 		newGroup = {id:0, display:groupName};
     profile.tabs.push({id:tab, groups:[ newGroup ] });
   }
-	tabContent[tab][newGroup.id] = [];
-  if (updateProfile(profile)) {
-		return newGroup;
-	} else {
-		return false;
-	}
+  updateProfile(profile, function() {callback(newGroup);});
 }
 
 /**
  * Edit a group name and updates the profile
  */
-function editGroup(tab, groupId, groupName) {
+function editGroup(tab, groupId, groupName, callback) {
 	var profile = getCurrentProfile();
   for (key in profile.tabs) {
     if (profile.tabs[key].id == tab) {
@@ -720,11 +674,7 @@ function editGroup(tab, groupId, groupName) {
       }
     }
   }
-  if (updateProfile(profile)) {
-		return true;
-	} else {
-		return false;
-	}
+  updateProfile(profile, callback);
 }
 
 /**
@@ -818,11 +768,12 @@ function initDashboardTab() {
 	var groupList = getGroupList(tabDashboardId);
 	$('#dashboard-title').text(curProfile.display);
 	if (groupList.length == 0) {
-		addGroup(tabDashboardId, $.t('Dashboard'));
-		groupList = getGroupList(tabDashboardId);
+		addGroup(tabDashboardId, $.t('Dashboard'), function(newGroup) {
+      addGroupToTab(tabDashboardId, newGroup.id, newGroup.display);
+      groupList = getGroupList(tabDashboardId);
+    });
 	}
 	for (key in groupList) {
-		tabContent[tabDashboardId][groupList[key].id] = [];
 		var htmlGroup = tabGroupTemplate.replace(/%TAB%/g, tabDashboardId).replace(/%GROUP%/g, groupList[key].id).replace(/%DISPLAY%/g, groupList[key].display);
 		$('#dashboard-content').append(htmlGroup);
 	}
@@ -837,32 +788,47 @@ function initParametersTab() {
 	var currentProfile = getCurrentProfile();
 	
 	$curProfileLabel.text(currentProfile.display);
+  
+  var url = globalConfig.carleon_location + carleon.apps.profiles.url + '?profiles';
+  $.get( url, function(data) {
+    var response = parseResponse(data);
+    if (response.result) {
+      for (key in response.json.profiles) {
+        var curProfile = response.json.profiles[key];
+        $profilesListSelect.append($('<option>', {
+          value:curProfile.id,
+          text:curProfile.display,
+          selected:(curProfile.id == currentProfile.id)
+        }));
+      }
+    } else {
+      logMessage(logTypeError, $.t('Error getting profiles'));
+    }
+  })
+  .fail(function() {
+    logMessage(logTypeError, $.t('Error getting profiles'));
+  });
 
-	var profilesList = sendGetRequest(globalConfig.carleon_location + carleon.apps.profiles.url + '?profiles');
-	
-	if (profilesList.result) {
-		for (key in profilesList.json.profiles) {
-			var curProfile = profilesList.json.profiles[key];
-			$profilesListSelect.append($('<option>', {
-				value:curProfile.id,
-				text:curProfile.display,
-				selected:(curProfile.id == currentProfile.id)
-			}));
-		}
-	}
-	
 	$profilesListSelect.change(function() {
-		var changeProfile = sendGetRequest(globalConfig.carleon_location + carleon.apps.profiles.url + '?setprofile='+$(this).val());
-		if (changeProfile.result) {
-			location.reload();
-		}
+    var url = globalConfig.carleon_location + carleon.apps.profiles.url + '?setprofile='+$(this).val();
+    $.get( url, function(data) {
+      var response = parseResponse(data);
+      if (response.result) {
+        location.reload();
+      } else {
+        logMessage(logTypeError, $.t('Error changing profile'));
+      }
+    })
+    .fail(function() {
+      logMessage(logTypeError, $.t('Error changing profile'));
+    });
 	});
 	
 	$('#admin-toggle').prop('checked', currentProfile.options.adminMode==true);
 	
 	if (currentProfile.options.adminMode) {
-		$('.admin-button').slideDown();
-		$('.div-hidden').slideDown();
+		$('.admin-button').show();
+		$('.div-hidden').show();
 	}
 	
   $('#admin-default-profile').prop('checked', currentProfile.default);
@@ -889,8 +855,10 @@ function newGroupDialog(tab) {
 	$dialog.on('keypress', function(e) {
 		var code = (e.keyCode ? e.keyCode : e.which);
 		if(code == 13) {
-			var newGroup = addGroup($(this).find('#dialog-tab-id').val(), $(this).find('#dialog-group-name').val());
-			addGroupToTab($(this).find('#dialog-tab-id').val(), newGroup.id, newGroup.display);
+      var self = $(this);
+      addGroup($(this).find('#dialog-tab-id').val(), $(this).find('#dialog-group-name').val(), function(newGroup) {
+        addGroupToTab(self.find('#dialog-tab-id').val(), newGroup.id, newGroup.display);
+      });
 			$( this ).dialog( 'close' );
 		}
 	});
@@ -903,8 +871,10 @@ function newGroupDialog(tab) {
 		buttons: [{
 			text:$.t('Ok'),
 			click:function() {
-				var newGroup = addGroup($(this).find('#dialog-tab-id').val(), $(this).find('#dialog-group-name').val());
-				addGroupToTab($(this).find('#dialog-tab-id').val(), newGroup.id, newGroup.display);
+        var self = $(this);
+				addGroup($(this).find('#dialog-tab-id').val(), $(this).find('#dialog-group-name').val(), function(newGroup) {
+          addGroupToTab(self.find('#dialog-tab-id').val(), newGroup.id, newGroup.display);
+        });
 				$( this ).dialog( 'close' );
 			}
 		}]
@@ -932,9 +902,10 @@ function editGroupDialog(tab, group) {
 	$dialog.on('keypress', function(e) {
 		var code = (e.keyCode ? e.keyCode : e.which);
 		if(code == 13) {
-			if (editGroup($(this).find('#dialog-tab-id').val(), $dialog.find('#dialog-group-id').val(), $(this).find('#dialog-group-name').val())) {
-				editGroupInTab($(this).find('#dialog-tab-id').val(), $dialog.find('#dialog-group-id').val(), $(this).find('#dialog-group-name').val());
-			}
+      var self = $(this);
+			editGroup($(this).find('#dialog-tab-id').val(), $dialog.find('#dialog-group-id').val(), $(this).find('#dialog-group-name').val(), function() {
+        editGroupInTab(self.find('#dialog-tab-id').val(), $dialog.find('#dialog-group-id').val(), self.find('#dialog-group-name').val());
+      });
 			$( this ).dialog( 'close' );
 		}
 	});
@@ -947,9 +918,10 @@ function editGroupDialog(tab, group) {
 		buttons: [{
 			text:$.t('Ok'),
 			click:function() {
-				if (editGroup($(this).find('#dialog-tab-id').val(), $dialog.find('#dialog-group-id').val(), $(this).find('#dialog-group-name').val())) {
-					editGroupInTab($(this).find('#dialog-tab-id').val(), $dialog.find('#dialog-group-id').val(), $(this).find('#dialog-group-name').val());
-				}
+        var self = $(this);
+        editGroup($(this).find('#dialog-tab-id').val(), $dialog.find('#dialog-group-id').val(), $(this).find('#dialog-group-name').val(), function() {
+          editGroupInTab(self.find('#dialog-tab-id').val(), $dialog.find('#dialog-group-id').val(), self.find('#dialog-group-name').val());
+        });
 				$( this ).dialog( 'close' );
 			}
 		}]
@@ -964,61 +936,60 @@ function editGroupDialog(tab, group) {
 function deleteGroup(tab, group) {
 	var profile = getCurrentProfile();
 	
-	// Remove all elements on this group
-	for (keyd in angharad.device) {
-		for (keysw in angharad.device[keyd].switches) {
-			for (keyt in angharad.device[keyd].switches[keysw].tags) {
-				if (angharad.device[keyd].switches[keysw].tags[keyt].indexOf(globalConfig.tags_prefix + '#' + profile.id + '#' + tab + '#' + group) == 0) {
-					removeSwitchFromGroup(keyd, angharad.device[keyd].switches[keysw].name, tab, group)
-				}
-			}
-		}
-		
-		for (keydi in angharad.device[keyd].dimmers) {
-			for (keyt in angharad.device[keyd].dimmers[keydi].tags) {
-				if (angharad.device[keyd].dimmers[keydi].tags[keyt].indexOf(globalConfig.tags_prefix + '#' + profile.id + '#' + tab + '#' + group) == 0) {
-					removeDimmerFromGroup(keyd, angharad.device[keyd].dimmers[keydi].name, tab, group)
-				}
-			}
-		}
-		
-		for (keyhe in angharad.device[keyd].heaters) {
-			for (keyt in angharad.device[keyd].heaters[keyhe].tags) {
-				if (angharad.device[keyd].heaters[keyhe].tags[keyt].indexOf(globalConfig.tags_prefix + '#' + profile.id + '#' + tab + '#' + group) == 0) {
-					removeHeaterFromGroup(keyd, angharad.device[keyd].heaters[keyhe].name, tab, group)
-				}
-			}
-		}
-		
-		for (keyse in angharad.device[keyd].sensors) {
-			for (keyt in angharad.device[keyd].sensors[keyse].tags) {
-				if (angharad.device[keyd].sensors[keyse].tags[keyt].indexOf(globalConfig.tags_prefix + '#' + profile.id + '#' + tab + '#' + group) == 0) {
-					removeSensorFromGroup(keyd, angharad.device[keyd].sensors[keyse].name, tab, group)
-				}
-			}
-		}
-	}
-	
-	// Remove current group
-  for (key in profile.tabs) {
-    if (profile.tabs[key].id == tab) {
-      for (keyg in profile.tabs[key].groups) {
-        if (profile.tabs[key].groups[keyg].id == group) {
-          profile.tabs[key].groups.splice(keyg, 1);
+  if (confirm($.t('Are you sure you want to remove this group and its elements ?'))) {
+    // Remove all elements on this group
+    for (keyd in angharad.device) {
+      for (keysw in angharad.device[keyd].switches) {
+        for (keyt in angharad.device[keyd].switches[keysw].tags) {
+          if (angharad.device[keyd].switches[keysw].tags[keyt].indexOf(globalConfig.tags_prefix + '#' + profile.id + '#' + tab + '#' + group) == 0) {
+            removeSwitchFromGroup(keyd, angharad.device[keyd].switches[keysw].name, tab, group)
+          }
+        }
+      }
+      
+      for (keydi in angharad.device[keyd].dimmers) {
+        for (keyt in angharad.device[keyd].dimmers[keydi].tags) {
+          if (angharad.device[keyd].dimmers[keydi].tags[keyt].indexOf(globalConfig.tags_prefix + '#' + profile.id + '#' + tab + '#' + group) == 0) {
+            removeDimmerFromGroup(keyd, angharad.device[keyd].dimmers[keydi].name, tab, group)
+          }
+        }
+      }
+      
+      for (keyhe in angharad.device[keyd].heaters) {
+        for (keyt in angharad.device[keyd].heaters[keyhe].tags) {
+          if (angharad.device[keyd].heaters[keyhe].tags[keyt].indexOf(globalConfig.tags_prefix + '#' + profile.id + '#' + tab + '#' + group) == 0) {
+            removeHeaterFromGroup(keyd, angharad.device[keyd].heaters[keyhe].name, tab, group)
+          }
+        }
+      }
+      
+      for (keyse in angharad.device[keyd].sensors) {
+        for (keyt in angharad.device[keyd].sensors[keyse].tags) {
+          if (angharad.device[keyd].sensors[keyse].tags[keyt].indexOf(globalConfig.tags_prefix + '#' + profile.id + '#' + tab + '#' + group) == 0) {
+            removeSensorFromGroup(keyd, angharad.device[keyd].sensors[keyse].name, tab, group)
+          }
         }
       }
     }
+    
+    // Remove current group
+    for (key in profile.tabs) {
+      if (profile.tabs[key].id == tab) {
+        for (keyg in profile.tabs[key].groups) {
+          if (profile.tabs[key].groups[keyg].id == group) {
+            profile.tabs[key].groups.splice(keyg, 1);
+          }
+        }
+      }
+    }
+    
+    updateProfile(profile, function() {
+      $div = $('#div-group-' + tab + '-' + group);
+      $div.fadeOut('fast', function() {
+        $div.remove();
+      });
+    });
   }
-  
-  if (updateProfile(profile)) {
-		$div = $('#div-group-' + tab + '-' + group);
-		$div.fadeOut('fast', function() {
-			$div.remove();
-		});
-		return true;
-	} else {
-		return false;
-	}
 }
 
 /**

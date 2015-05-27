@@ -6,7 +6,7 @@
  */
 var carleon = {ready:false}
 
-var tabConstGroupTemplate = '<div id="div-group-%TAB%-%GROUP%">\n\
+var tabConstGroupTemplate = '<div id="div-group-%TAB%-%GROUP%" data-an-index="%GROUP%">\n\
 	<label id="container-%TAB%-%GROUP%-label">%DISPLAY%</label>\n\
 	<div id="containers-%TAB%-%GROUP%" class="block">\n\
 		<div id="container-%TAB%-%GROUP%" class="div-container-inside" data-an-nb-elements="0"></div>\n\
@@ -118,65 +118,101 @@ var radioTemplate = '<div id="radio-%NAME%" class="small-block data-element" dat
 /**
  * Initialize the carleon plugins configuration
  */
-function gatherCarleonInformations() {
-	var url = globalConfig.carleon_location;
-	var response = sendGetRequest(url + '/');
-	
-	if (response.result) {
-		carleon.apps = [];
-		carleon.appsData = {};
-		for (key in response.json.apps) {
-			carleon.apps[response.json.apps[key].name] = response.json.apps[key];
-		}
-		carleon.ready = true;
-		var resultProfile = sendGetRequest(globalConfig.carleon_location + carleon.apps['profiles'].url);
-		
-		if (resultProfile.result) {
-			globalConfig.profile = resultProfile.json.profile;
-		}
-		
-    // Init camera list
-    var url = globalConfig.carleon_location + carleon.apps['camera'].url;
-    var response = sendGetRequest(url);
-    
+function gatherCarleonInformations(gatherAngharadInformations) {
+	var url = globalConfig.carleon_location + '/';
+  $.get( url, function(data) {
+    var response = parseResponse(data);
     if (response.result) {
-      carleon.appsData.cameras = [];
-			for (cam in response.json.cameras) {
-				carleon.appsData.cameras[response.json.cameras[cam].name] = response.json.cameras[cam];
-			}
+      carleon.apps = [];
+      carleon.appsData = {};
+      for (key in response.json.apps) {
+        carleon.apps[response.json.apps[key].name] = response.json.apps[key];
+      }
+      carleon.ready = true;
+      var url = globalConfig.carleon_location + carleon.apps['profiles'].url;
+      $.get( url, function(data) {
+        var response = parseResponse(data);
+        if (response.result) {
+          globalConfig.profile = response.json.profile;
+          initDashboardTab();
+          
+          // Init camera list
+          var url = globalConfig.carleon_location + carleon.apps['camera'].url;
+          $.get( url, function(data) {
+            var response = parseResponse(data);
+            if (response.result) {
+              carleon.appsData.cameras = [];
+              for (cam in response.json.cameras) {
+                carleon.appsData.cameras[response.json.cameras[cam].name] = response.json.cameras[cam];
+              }
+              initCameraTab();
+            } else {
+              logMessage(logTypeError, $.t('Error loading camera list'));
+            }
+          })
+          .fail(function() {
+            logMessage(logTypeError, $.t('Error loading camera list'));
+          });
+          
+          // Init radio list
+          var url = globalConfig.carleon_location + carleon.apps['radio'].url;
+          $.get( url, function(data) {
+            var response = parseResponse(data);
+            if (response.result) {
+              carleon.appsData.radios = [];
+              for (radio in response.json.radios) {
+                carleon.appsData.radios[response.json.radios[radio].name] = response.json.radios[radio];
+              }
+            } else {
+              logMessage(logTypeError, $.t('Error loading radio list'));
+            }
+          })
+          .fail(function() {
+            logMessage(logTypeError, $.t('Error loading radio list'));
+          })
+          .complete(function() {
+            initRadios();
+          });
+          
+          // Init mpc list
+          var url = globalConfig.carleon_location + carleon.apps['mpc'].url;
+          $.get( url, function(data) {
+            var response = parseResponse(data);
+            if (response.result) {
+              carleon.appsData.mpcs = [];
+              for (mpc in response.json.mpcs) {
+                carleon.appsData.mpcs[response.json.mpcs[mpc].name] = response.json.mpcs[mpc];
+              }
+            } else {
+              logMessage(logTypeError, $.t('Error loading mpc list'));
+            }
+          })
+          .fail(function() {
+            logMessage(logTypeError, $.t('Error loading mpc list'));
+          })
+          .complete(function() {
+            initMpcs();
+          });
+          
+        } else {
+          logMessage(logTypeError, $.t('Error getting current profile'));
+        }
+      })
+      .fail(function() {
+        logMessage(logTypeError, $.t('Error getting current profile'));
+      })
+      .complete(function() {
+        initParametersTab();
+        gatherAngharadInformations();
+      });
+      
     } else {
-      logMessage(logTypeError, $.t('Error loading camera list'));
+      logMessage(logTypeError, $.t('Error loading Carleon configuration'));
     }
-		
-		// Init mpc list
-		var url = globalConfig.carleon_location + carleon.apps['mpc'].url;
-    var response = sendGetRequest(url);
-    
-    if (response.result) {
-      carleon.appsData.mpcs = [];
-			for (mpc in response.json.mpcs) {
-				carleon.appsData.mpcs[response.json.mpcs[mpc].name] = response.json.mpcs[mpc];
-			}
-    } else {
-      logMessage(logTypeError, $.t('Error loading mpc list'));
-    }
-		
-		// Init radio list
-		var url = globalConfig.carleon_location + carleon.apps['radio'].url;
-    var response = sendGetRequest(url);
-    
-    if (response.result) {
-      carleon.appsData.radios = [];
-			for (radio in response.json.radios) {
-				carleon.appsData.radios[response.json.radios[radio].name] = response.json.radios[radio];
-			}
-    } else {
-      logMessage(logTypeError, $.t('Error loading radio list'));
-    }
-		
-	} else {
-		logMessage(logTypeError, $.t('Error loading Carleon configuration'));
-	}
+  })
+  .fail(function() {
+    logMessage(logTypeError, $.t('Error loading Carleon configuration'));
+  });
 }
 
 /**
@@ -189,13 +225,10 @@ function initCameraTab() {
 		
 		var html = tabConstGroupTemplate.replace(/%TAB%/g, tabCamerasId).replace(/%GROUP%/g, 0).replace(/%DISPLAY%/g, $.t('Scripts'));
 		$(html).insertBefore($('#container-camera'));
-		tabContent[tabCamerasId][0] = [];
 		
 		for (cam in carleon.appsData.cameras) {
 			var curCam = carleon.appsData.cameras[cam];
 			var $group = $('#container-camera');
-			tabContent[tabCamerasId]['camera'] = [];
-			tabContent[tabCamerasId]['camera'].push({type:"camera", name:curCam.name, description:curCam.description, group:curCam.name});
 			displayCameraInGroup(curCam, tabCamerasId, 'camera', $group.attr('data-an-nb-elements'));
 			
 			for (tag in curCam.tags) {
@@ -205,7 +238,6 @@ function initCameraTab() {
 					var position = curCam.tags[tag].split('#')[4];
 					var curName = tab + '-' + group + '-' + curCam.name;
           var $group = $('#div-group-'+tab+'-'+group);
-					tabContent[tab][group].push({type:"camera", name:curCam.name, description:curCam.description, group:curCam.name});
 					displayCameraInGroup(curCam, tab, group, position);
 				}
 			}
@@ -233,13 +265,17 @@ function addCameraToGroup(camera, tab, group, position) {
 	var tag = encodeURIComponent(globalConfig.tags_prefix + '#' + curProfileId + '#' + tab + '#' + group + '#' + position);
 	
 	var url = globalConfig.carleon_location + carleon.apps['camera'].url + '?camera=' + curCamera.name + '&addtag=' + tag;
-	var response = sendGetRequest(url);
-	
-	if (response.result) {
-		displayCameraInGroup(curCamera, tab, group, position);
-	} else {
-		logMessage(logTypeError, $.t('Error while updating camera'));
-	}
+  $.get( url, function(data) {
+    var response = parseResponse(data);
+    if (response.result) {
+      displayCameraInGroup(curCamera, tab, group, position);
+    } else {
+      logMessage(logTypeError, $.t('Error while updating camera'));
+    }
+  })
+  .fail(function() {
+    logMessage(logTypeError, $.t('Error while updating camera'));
+  });
 }
 
 /**
@@ -260,15 +296,19 @@ function removeCameraFromGroup(camera, tab, group) {
 	}
 	
 	var url = globalConfig.carleon_location + carleon.apps['camera'].url + '?camera=' + curCamera.name + '&removetag=' + tag;
-	var response = sendGetRequest(url);
-	
-	if (response.result) {
-		$div.fadeOut('fast', function() {
-			$div.remove();
-		});
-	} else {
-		logMessage(logTypeError, $.t('Error while updating script'));
-	}
+  $.get( url, function(data) {
+    var response = parseResponse(data);
+    if (response.result) {
+      $div.fadeOut('fast', function() {
+        $div.remove();
+      });
+    } else {
+      logMessage(logTypeError, $.t('Error while updating script'));
+    }
+  })
+  .fail(function() {
+    logMessage(logTypeError, $.t('Error while updating script'));
+  });
 }
 
 /**
@@ -351,31 +391,49 @@ function displayCameraInGroup(curCamera, tab, group, position) {
  * Initialize a camera block
  */
 function updateCamera(camera) {
-	getCameraFiles(camera, true);
-	getCameraFiles(camera, false);
-	changeAllCameraListFiles(camera);
+	getCameraSnapFiles(camera);
 }
 
 /**
  * get the camera files on the server
  */
-function getCameraFiles(camera, alert) {
+function getCameraSnapFiles(camera) {
 	var url = globalConfig.carleon_location + carleon.apps['camera'].url + '?camera='+camera;
-	var type = (alert?'alert':'sched');
-	url += (alert?'&alert':'');
 	
-	var response = sendGetRequest(url);
+  $.get( url, function(data) {
+    var response = parseResponse(data);
+    if (response.result) {
+      carleon.appsData.cameras[camera].detection = response.json.camera.detection;
+      carleon.appsData.cameras[camera].snapFiles = response.json.camera.list;
+      getCameraAlertFiles(camera);
+    } else {
+      logMessage(logTypeError, $.t('Error getting camera files for')+' '+camera);
+    }
+  })
+  .fail(function() {
+    logMessage(logTypeError, $.t('Error getting camera files for')+' '+camera);
+  });
+}
+
+/**
+ * get the camera alert files on the server
+ */
+function getCameraAlertFiles(camera) {
+	var url = globalConfig.carleon_location + carleon.apps['camera'].url + '?camera='+camera + '&alert';
 	
-	if (response.result) {
-		carleon.appsData.cameras[camera].detection = response.json.camera.detection;
-		if (alert) {
-			carleon.appsData.cameras[camera].alertFiles = response.json.camera.list;
-		} else {
-			carleon.appsData.cameras[camera].snapFiles = response.json.camera.list;
-		}
-	} else {
-		logMessage(logTypeError, $.t('Error getting camera files for')+' '+camera);
-	}
+  $.get( url, function(data) {
+    var response = parseResponse(data);
+    if (response.result) {
+      carleon.appsData.cameras[camera].detection = response.json.camera.detection;
+      carleon.appsData.cameras[camera].alertFiles = response.json.camera.list;
+      changeAllCameraListFiles(camera);
+    } else {
+      logMessage(logTypeError, $.t('Error getting alert camera files for')+' '+camera);
+    }
+  })
+  .fail(function() {
+    logMessage(logTypeError, $.t('Error getting alert camera files for')+' '+camera);
+  });
 }
 
 /**
@@ -471,17 +529,22 @@ function triggerImagesGrid(name, camera) {
 			cpt++;
 		}
 	} else if (cameraSwitch == 'stream') {
+		var cameraName = $('#camera-switch-'+name).attr('data-an-camera');
+		var url = globalConfig.carleon_location + carleon.apps['camera'].url + 'stream.php?camera='+cameraName;
+		$('#camera-photo-'+name).attr('src', url);
+		$('#camera-photo-large-'+name).attr('href', url+'&large');
+    $('#camera-photo-large-'+name).trigger('click');
 	}
 }
 
 /**
- * Initialize the Music tab
+ * Initialize the Mpcs
  */
-function initMusicTab() {
+function initMpcs() {
 	var profile = getCurrentProfile();
 	var profileToUpdate = false;
   if (carleon.ready && angharad.ready) {
-		var $container = $('#container-music');
+		var $container = $('#container-mpc');
 		var index = 0;
 		
 		if (profile.options.mpcs == undefined) {
@@ -490,12 +553,10 @@ function initMusicTab() {
 		}
 		
 		for (mpc in carleon.appsData.mpcs) {
-			tabContent[tabMusicId][index] = []
 			var curMpc = carleon.appsData.mpcs[mpc];
-			tabContent[tabMusicId][index].push({type:"mpc", name:curMpc.name, group:index, position:0});
 			var html = tabConstGroupTemplate.replace(/%TAB%/g, tabMusicId).replace(/%GROUP%/g, index).replace(/%DISPLAY%/g, curMpc.display);
 			
-			$('#container-music').append(html);
+			$container.append(html);
 			
 			displayMpcInGroup(curMpc, tabMusicId, index, 0);
 			var $group = $('#container-'+tabMusicId+'-'+index);
@@ -510,13 +571,25 @@ function initMusicTab() {
 			}
 			index++;
       
-      updateMpcDisplay(updateMpc(curMpc.name), curMpc.name);
+      updateMpc(curMpc.name, updateMpcDisplay);
 		}
 		
 		// Initialize the interval for mpc display
 		setInterval(function() {
 			updateAllMpcDisplay();
 		}, 10*1000);
+	}
+}
+
+/**
+ * Init the radios
+ */
+function initRadios() {
+	var profile = getCurrentProfile();
+	var profileToUpdate = false;
+  if (carleon.ready && angharad.ready) {
+		var $container = $('#container-radio');
+		var index = carleon.appsData.radios.length + 1;
 		
 		if (profile.options.radios == undefined) {
 			profile.options.radios = [];
@@ -524,7 +597,6 @@ function initMusicTab() {
 		}
 		
 		for (radio in carleon.appsData.radios) {
-			tabContent[tabMusicId][index] = [];
 			var curRadio = carleon.appsData.radios[radio];
 			var radioProfileFound = false;
 			for (key in profile.options.radios) {
@@ -536,10 +608,9 @@ function initMusicTab() {
 				profile.options.radios.push({name:curRadio.name, stream:false, data:false});
 				profileToUpdate = true;
 			}
-			tabContent[tabMusicId][index].push({type:"radio", name:curRadio.name, group:index, position:0});
 			var html = tabConstGroupTemplate.replace(/%TAB%/g, tabMusicId).replace(/%GROUP%/g, index).replace(/%DISPLAY%/g, curRadio.display);
 			
-			$('#container-music').append(html);
+			$container.append(html);
 			
 			displayRadioInGroup(curRadio, tabMusicId, index, 0);
 			var $group = $('#container-'+tabMusicId+'-'+index);
@@ -592,13 +663,17 @@ function addMpcToGroup(mpc, tab, group, position) {
 	var tag = encodeURIComponent(globalConfig.tags_prefix + '#' + curProfileId + '#' + tab + '#' + group + '#' + position);
 	
 	var url = globalConfig.carleon_location + carleon.apps['mpc'].url + '?server=' + curMpc.name + '&addtag=' + tag;
-	var response = sendGetRequest(url);
-	
-	if (response.result) {
-		displayMpcInGroup(curMpc, tab, group, position);
-	} else {
-		logMessage(logTypeError, $.t('Error while updating mpc'));
-	}
+  $.get( url, function(data) {
+    var response = parseResponse(data);
+    if (response.result) {
+      displayMpcInGroup(curMpc, tab, group, position);
+    } else {
+      logMessage(logTypeError, $.t('Error while updating mpc'));
+    }
+  })
+  .fail(function() {
+    logMessage(logTypeError, $.t('Error while updating mpc'));
+  });
 }
 
 /**
@@ -619,15 +694,19 @@ function removeMpcFromGroup(mpc, tab, group) {
 	}
 	
 	var url = globalConfig.carleon_location + carleon.apps['mpc'].url + '?server=' + curMpc.name + '&removetag=' + tag;
-	var response = sendGetRequest(url);
-	
-	if (response.result) {
-		$div.fadeOut('fast', function() {
-			$div.remove();
-		});
-	} else {
-		logMessage(logTypeError, $.t('Error while updating mpc'));
-	}
+  $.get( url, function(data) {
+    var response = parseResponse(data);
+    if (response.result) {
+      $div.fadeOut('fast', function() {
+        $div.remove();
+      });
+    } else {
+      logMessage(logTypeError, $.t('Error while updating mpc'));
+    }
+  })
+  .fail(function() {
+    logMessage(logTypeError, $.t('Error while updating mpc'));
+  });
 }
 
 /**
@@ -667,13 +746,17 @@ function displayMpcInGroup(curMpc, tab, group, position) {
 			if (event.originalEvent) {
 				var server = $(this).parent().attr('data-an-mpc');
 				var url = globalConfig.carleon_location + carleon.apps['mpc'].url + '?server='+server+'&volume='+$(this).slider( 'value' );
-				var response = sendGetRequest(url);
-				
-				if (response.result) {
-					updateMpcDisplay(updateMpc(server), server);
-				} else {
-					logMessage(logTypeError, $.t('Error updating music volume on server')+' '+server);
-				}
+        $.get( url, function(data) {
+          var response = parseResponse(data);
+          if (response.result) {
+            updateMpc(server, updateMpcDisplay);
+          } else {
+            logMessage(logTypeError, $.t('Error updating music volume on server')+' '+server);
+          }
+        })
+        .fail(function() {
+          logMessage(logTypeError, $.t('Error updating music volume on server')+' '+server);
+        });
 			}
 		}
 	});
@@ -681,26 +764,34 @@ function displayMpcInGroup(curMpc, tab, group, position) {
 	$('#mpc-' + curName + '-stop').click(function() {
 		var mpc = $(this).parent().parent().attr('data-an-mpc');
 		var url = globalConfig.carleon_location + carleon.apps['mpc'].url + '?server='+mpc+'&stop';
-		var response = sendGetRequest(url);
-		
-		if (response.result) {
-			updateMpcDisplay(response.json.mpc, mpc);
-		} else {
-			logMessage(logTypeError, $.t('Error updating music on server ')+mpc);
-		}
+    $.get( url, function(data) {
+      var response = parseResponse(data);
+      if (response.result) {
+        updateMpcDisplay(response.json.mpc, mpc);
+      } else {
+        logMessage(logTypeError, $.t('Error updating music on server ')+mpc);
+      }
+    })
+    .fail(function() {
+      logMessage(logTypeError, $.t('Error updating music on server ')+mpc);
+    });
 		return false;
 	});
 	
 	$('#mpc-' + curName + '-play').click(function() {
 		var mpc = $(this).parent().parent().attr('data-an-mpc');
 		var url = globalConfig.carleon_location + carleon.apps['mpc'].url + '?server='+mpc+'&play';
-		var response = sendGetRequest(url);
-		
-		if (response.result) {
-			updateMpcDisplay(response.json.mpc, mpc);
-		} else {
-			logMessage(logTypeError, $.t('Error updating music on server')+' '+mpc);
-		}
+    $.get( url, function(data) {
+      var response = parseResponse(data);
+      if (response.result) {
+        updateMpcDisplay(response.json.mpc, mpc);
+      } else {
+        logMessage(logTypeError, $.t('Error updating music on server')+' '+mpc);
+      }
+    })
+    .fail(function() {
+      logMessage(logTypeError, $.t('Error updating music on server')+' '+mpc);
+    });
 		return false;
 	});
 	
@@ -711,7 +802,7 @@ function displayMpcInGroup(curMpc, tab, group, position) {
 			$divCommands.attr('data-an-state', '1');
 			$divCommands.slideDown();
 			$('#toggle-mpc-'+curName).attr('value', $.t('Hide'));
-			updateMpcDisplay(updateMpc(mpc), mpc);
+			updateMpc(mpc, updateMpcDisplay);
 		} else {
 			$divCommands.attr('data-an-state', '0');
 			$divCommands.slideUp();
@@ -723,16 +814,19 @@ function displayMpcInGroup(curMpc, tab, group, position) {
 /**
  * Update all the mpc controls for this mpc
  */
-function updateMpc(mpc) {
+function updateMpc(mpc, updateMpcDisplayCallBack) {
 	var url = globalConfig.carleon_location + carleon.apps['mpc'].url + '?server='+mpc+'&status';
-	var response = sendGetRequest(url);
-	
-	if (response.result) {
-		return response.json.mpc;
-	} else {
+  $.get( url, function(data) {
+    var response = parseResponse(data);
+    if (response.result) {
+      updateMpcDisplayCallBack(response.json.mpc, mpc);
+    } else {
+      logMessage(logTypeError, $.t('Error updating music information on server')+' '+mpc);
+    }
+  })
+  .fail(function() {
 		logMessage(logTypeError, $.t('Error updating music information on server')+' '+mpc);
-		return undefined
-	}
+  });
 }
 
 /**
@@ -747,7 +841,7 @@ function updateAllMpcDisplay() {
 			}
 		});
 		if (isOpened) {
-			updateMpcDisplay(updateMpc(mpc), mpc);
+			updateMpc(mpc, updateMpcDisplay);
 		}
 	}
 }
@@ -799,13 +893,17 @@ function addRadioToGroup(radio, tab, group, position) {
 	var tag = encodeURIComponent(globalConfig.tags_prefix + '#' + curProfileId + '#' + tab + '#' + group + '#' + position);
 	
 	var url = globalConfig.carleon_location + carleon.apps['radio'].url + '?radio=' + curRadio.name + '&addtag=' + tag;
-	var response = sendGetRequest(url);
-	
-	if (response.result) {
-		displayRadioInGroup(curRadio, tab, group, position);
-	} else {
-		logMessage(logTypeError, $.t('Error while updating radio'));
-	}
+  $.get( url, function(data) {
+    var response = parseResponse(data);
+    if (response.result) {
+      displayRadioInGroup(curRadio, tab, group, position);
+    } else {
+      logMessage(logTypeError, $.t('Error while updating radio'));
+    }
+  })
+  .fail(function() {
+    logMessage(logTypeError, $.t('Error while updating radio'));
+  });
 }
 
 /**
@@ -826,15 +924,19 @@ function removeRadioFromGroup(radio, tab, group) {
 	}
 	
 	var url = globalConfig.carleon_location + carleon.apps['radio'].url + '?radio=' + curRadio.name + '&removetag=' + tag;
-	var response = sendGetRequest(url);
-	
-	if (response.result) {
-		$div.fadeOut('fast', function() {
-			$div.remove();
-		});
-	} else {
-		logMessage(logTypeError, $.t('Error while updating radio'));
-	}
+  $.get( url, function(data) {
+    var response = parseResponse(data);
+    if (response.result) {
+      $div.fadeOut('fast', function() {
+        $div.remove();
+      });
+    } else {
+      logMessage(logTypeError, $.t('Error while updating radio'));
+    }
+  })
+  .fail(function() {
+    logMessage(logTypeError, $.t('Error while updating radio'));
+  });
 }
 
 /**
@@ -938,13 +1040,17 @@ function displayRadioInGroup(curRadio, tab, group, position) {
  */
 function sendRadioCommand(radio, command) {
 	var url = globalConfig.carleon_location + carleon.apps['radio'].url + '?radio='+radio+'&request='+command;
-	var response = sendGetRequest(url);
-	
-	if (response.result) {
-		updateRadioCommands(radio);
-	} else {
-		logMessage(logTypeError, $.t('Unable to send command for radio')+' '+radio);
-	}
+  $.get( url, function(data) {
+    var response = parseResponse(data);
+    if (response.result) {
+      updateRadioCommands(radio);
+    } else {
+      logMessage(logTypeError, $.t('Unable to send command for radio')+' '+radio);
+    }
+  })
+  .fail(function() {
+    logMessage(logTypeError, $.t('Unable to send command for radio')+' '+radio);
+  });
 }
 
 /**
@@ -973,22 +1079,26 @@ function updateAllRadioCommands() {
  */
 function updateRadioCommands(radio) {
 	var url = globalConfig.carleon_location + carleon.apps['radio'].url + '?radio='+radio+'&request=status';
-	var response = sendGetRequest(url);
-	
-	if (response.result) {
-		if (response.json.data == 'on') {
-			var $pRadioCommands = $('#p-radio-commands');
-			$('.c-radio-stream-data-'+radio).find('.radio-command-start').hide();
-			$('.c-radio-stream-data-'+radio).find('.radio-command-stop').show();
-			$('.c-radio-stream-data-'+radio).find('.radio-command-next').show();
-		} else {
-			$('.c-radio-stream-data-'+radio).find('.radio-command-start').show();
-			$('.c-radio-stream-data-'+radio).find('.radio-command-stop').hide();
-			$('.c-radio-stream-data-'+radio).find('.radio-command-next').hide();
-		}
-	} else {
-		logMessage(logTypeError, $.t('Unable to get status for radio')+' '+radio);
-	}
+  $.get( url, function(data) {
+    var response = parseResponse(data);
+    if (response.result) {
+      if (response.json.data == 'on') {
+        var $pRadioCommands = $('#p-radio-commands');
+        $('.c-radio-stream-data-'+radio).find('.radio-command-start').hide();
+        $('.c-radio-stream-data-'+radio).find('.radio-command-stop').show();
+        $('.c-radio-stream-data-'+radio).find('.radio-command-next').show();
+      } else {
+        $('.c-radio-stream-data-'+radio).find('.radio-command-start').show();
+        $('.c-radio-stream-data-'+radio).find('.radio-command-stop').hide();
+        $('.c-radio-stream-data-'+radio).find('.radio-command-next').hide();
+      }
+    } else {
+      logMessage(logTypeError, $.t('Unable to get status for radio')+' '+radio);
+    }
+  })
+  .fail(function() {
+    logMessage(logTypeError, $.t('Unable to get status for radio')+' '+radio);
+  });
 }
 
 /**
@@ -1018,27 +1128,31 @@ function updateAllRadioSongList() {
  */
 function updateRadioSongList(radio) {
 	var url = globalConfig.carleon_location + carleon.apps['radio'].url + '?radio='+radio+'&list';
-	var response = sendGetRequest(url);
-	
-	if (response.result) {
-		carleon.appsData.radios[radio].list = response.json.list;
-		$('.radio-list-song-'+radio).each(function() {
-			var selectedSong = $(this).find('option:selected').text();
-			$(this).empty();
-			$(this).append('<option value="current">'+$.t('Current song')+'</option>');
-			if (carleon.appsData.radios[radio].list.length >0) {
-				for (i=0; i<carleon.appsData.radios[radio].list.length; i++) {
-					$(this).append('<option value="'+i+'">'+carleon.appsData.radios[radio].list[i].artist + ' - ' + carleon.appsData.radios[radio].list[i].title+'</option>');
-				}
-				if (selectedSong != '') {
-					$(this).find('option:contains('+selectedSong+')').prop('selected', true);
-				}
-			}
-			$(this).trigger('change');
-		});
-	} else {
+  $.get( url, function(data) {
+    var response = parseResponse(data);
+    if (response.result) {
+      carleon.appsData.radios[radio].list = response.json.list;
+      $('.radio-list-song-'+radio).each(function() {
+        var selectedSong = $(this).find('option:selected').text();
+        $(this).empty();
+        $(this).append('<option value="current">'+$.t('Current song')+'</option>');
+        if (carleon.appsData.radios[radio].list.length >0) {
+          for (i=0; i<carleon.appsData.radios[radio].list.length; i++) {
+            $(this).append('<option value="'+i+'">'+carleon.appsData.radios[radio].list[i].artist + ' - ' + carleon.appsData.radios[radio].list[i].title+'</option>');
+          }
+          if (selectedSong != '') {
+            $(this).find('option:contains('+selectedSong+')').prop('selected', true);
+          }
+        }
+        $(this).trigger('change');
+      });
+    } else {
+      logMessage(logTypeError, $.t('Unable to get the songs list for radio')+' '+radio);
+    }
+  })
+  .fail(function() {
 		logMessage(logTypeError, $.t('Unable to get the songs list for radio')+' '+radio);
-	}
+  });
 }
 
 /**
@@ -1046,13 +1160,17 @@ function updateRadioSongList(radio) {
  */
 function updateRadioCurrentSong(radio) {
 	var url = globalConfig.carleon_location + carleon.apps['radio'].url + '?radio='+radio+'&on_air';
-	var response = sendGetRequest(url);
-	
-	if (response.result) {
-		carleon.appsData.radios[radio].on_air = response.json.song;
-	} else {
-		logMessage(logTypeError, $.t('Unable to get the songs list for radio')+' '+radio);
-	}
+  $.get( url, function(data) {
+    var response = parseResponse(data);
+    if (response.result) {
+      carleon.appsData.radios[radio].on_air = response.json.song;
+    } else {
+      logMessage(logTypeError, $.t('Unable to get the songs list for radio')+' '+radio);
+    }
+  })
+  .fail(function() {
+    logMessage(logTypeError, $.t('Unable to get the songs list for radio')+' '+radio);
+  });
 }
 
 /**

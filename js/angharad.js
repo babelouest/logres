@@ -22,11 +22,11 @@ var dimmerTemplate = '<div id="div-dimmer-%NAME%" class="%CLASS% group-dimmer-%G
 	<input type="button" class="admin-button %ADMINCLASS%" value="+" name="admin-dimmer-%NAME%" id="admin-dimmer-%NAME%" data-an-type="dimmer" data-an-device="%DEVICE%" data-an-name="%DIMMER%" data-an-unit="&#37;" data-an-tab="%TAB%" data-an-group="%GROUP%"/>\n\
 	<label id="label-dimmer-%NAME%" for="di-%NAME%" data-an-label="%DISPLAY%">%DISPLAY%</label>\n\
 	<div class="dimmer-row">\n\
-		<div class="dimmer-0"><input type="button" name="di-set-0-%NAME%" id="di-set-0-%NAME%" value="0%" data-an-name-value="0" class="styled-button" data-an-device="%DEVICE%" data-an-name="%DIMMER%"></div>\n\
-		<div class="dimmer-25"><input type="button" name="di-set-25-%NAME%" id="di-set-25-%NAME%" value="25%" data-an-name-value="25" class="styled-button" data-an-device="%DEVICE%" data-an-name="%DIMMER%"></div>\n\
-		<div class="dimmer-50"><input type="button" name="di-set-50-%NAME%" id="di-set-50-%NAME%" value="50%" data-an-name-value="50" class="styled-button" data-an-device="%DEVICE%" data-an-name="%DIMMER%"></div>\n\
-		<div class="dimmer-75"><input type="button" name="di-set-75-%NAME%" id="di-set-75-%NAME%" value="75%" data-an-name-value="75" class="styled-button" data-an-device="%DEVICE%" data-an-name="%DIMMER%"></div>\n\
-		<div class="dimmer-100"><input type="button" name="di-set-100-%NAME%" id="di-set-100-%NAME%" value="100%" data-an-name-value="100" class="styled-button" data-an-device="%DEVICE%" data-an-name="%DIMMER%"></div>\n\
+		<div class="dimmer-0"><input type="button" name="di-set-0-%NAME%" id="di-set-0-%NAME%" value="0%" data-an-value="0" class="styled-button" data-an-device="%DEVICE%" data-an-name="%DIMMER%"></div>\n\
+		<div class="dimmer-25"><input type="button" name="di-set-25-%NAME%" id="di-set-25-%NAME%" value="25%" data-an-value="25" class="styled-button" data-an-device="%DEVICE%" data-an-name="%DIMMER%"></div>\n\
+		<div class="dimmer-50"><input type="button" name="di-set-50-%NAME%" id="di-set-50-%NAME%" value="50%" data-an-value="50" class="styled-button" data-an-device="%DEVICE%" data-an-name="%DIMMER%"></div>\n\
+		<div class="dimmer-75"><input type="button" name="di-set-75-%NAME%" id="di-set-75-%NAME%" value="75%" data-an-value="75" class="styled-button" data-an-device="%DEVICE%" data-an-name="%DIMMER%"></div>\n\
+		<div class="dimmer-100"><input type="button" name="di-set-100-%NAME%" id="di-set-100-%NAME%" value="100%" data-an-value="100" class="styled-button" data-an-device="%DEVICE%" data-an-name="%DIMMER%"></div>\n\
 	</div>\n\
 	<div id="label-di-slide-%NAME%" class="label-di-slide"></div>\n\
 	<div class="dimmer di-slide" data-an-device="%DEVICE%" data-an-name="%DIMMER%" id="di-slide-%NAME%"></div>\n\
@@ -185,116 +185,265 @@ var monitorTemplate = '<div id="monitor-%NAME%">\n\
  */
 function gatherAngharadInformations() {
 	// get devices list
-	var devices = sendGetRequest(globalConfig.angharad_location + '/DEVICES');
-	
-	// For each device, get overview
-	if (devices.result) {
+  
+  var url = globalConfig.angharad_location + '/DEVICES';
+	$.get( url , function(data) {
+		var devices = parseResponse(data);
+    if (devices.result) {
+      angharad.devices = [];
+      for (de in devices.json.devices) {
+        angharad.devices[devices.json.devices[de].name] = devices.json.devices[de];
+      }
+      
+      angharad.device = [];
+      var count = 0;
+      for (dev in angharad.devices) {
+        // For each device, get its overview
+        var url = globalConfig.angharad_location + '/OVERVIEW/' + dev;
+        var resp = $.get( url , function(data) {
+          var device = parseResponse(data);
+          if (device.result) {
+            angharad.device[device.json.device.name] = device.json.device;
+            displayDevice(angharad.device[device.json.device.name]);
+          } else {
+            logMessage(logTypeError, $.t('Error getting device overview'));
+          }
+        })
+        .fail(function() {
+          logMessage(logTypeError, $.t('Error getting device overview'));
+        })
+        .complete(function() {
+          count++;
+          if (count == devices.json.devices.length) {
+            initMonitorTab();
+          }
+        });
+        $.when(resp).done(function() {
+        });
+      }
+    } else {
+      logMessage(logTypeError, $.t('Error getting devices'));
+    }
+	})
+	.fail(function() {
+		logMessage(logTypeError, $.t('Error getting devices'));
+	})
+  
+  // get actions list
+  var url = globalConfig.angharad_location + '/ACTIONS';
+  $.get( url, function(data) {
+    var response = parseResponse(data);
+    if (response.result) {
+      var htmlActions = actionsContainerTemplate.replace(/%DISPLAY%/g, $.t('All actions'));
+      var index = 0;
+      $('#actions-div').append(htmlActions);
+      angharad.actions = [];
+      for (key in response.json.actions) {
+        var curAction = response.json.actions[key];
+        displayActionInGroup(curAction, tabScriptsSchedulesId, '-1', index);
+        index++;
+        angharad.actions[curAction.id] = curAction;
+      }
 		
-		angharad.devices = [];
-		for (de in devices.json.devices) {
-			angharad.devices[devices.json.devices[de].name] = devices.json.devices[de];
-		}
-		
-		angharad.device = [];
-		
-		for (dev in angharad.devices) {
-			// For each device, get its overview
-			var overviewDevice = sendGetRequest(globalConfig.angharad_location + '/OVERVIEW/' + dev);
-			
-			if (overviewDevice.result) {
-				angharad.device[dev] = overviewDevice.json.device;
-			}
-		}
-	}
-	
-	// get actions list
-	var actions = sendGetRequest(globalConfig.angharad_location + '/ACTIONS');
-	if (actions.result) {
-		angharad.actions = [];
-		for (key in actions.json.actions) {
-			angharad.actions[actions.json.actions[key].id] = actions.json.actions[key];
-		}
-	}
-	
-	// get scripts list
-	var scripts = sendGetRequest(globalConfig.angharad_location + '/SCRIPTS');
-	if (scripts.result) {
-		angharad.scripts = [];
-		for (key in scripts.json.scripts) {
-			angharad.scripts[scripts.json.scripts[key].id] = scripts.json.scripts[key];
-		}
-	}
+      $('#fold-actions').click(function() {
+        var profile = getCurrentProfile();
+        $('#container-actions').slideToggle();
+        if (profile.options.foldActions == undefined) {
+          profile.options.foldActions = false;
+        }
+        profile.options.foldActions = !profile.options.foldActions;
+        updateProfile(profile);
+      });
+      
+      $('#new-action').click(function() {
+        editAction(null);
+      });
+      
+      var profile = getCurrentProfile();
+      if (profile.options.foldActions == true) {
+        $('#container-actions').show();
+      } else {
+        $('#container-actions').hide();
+      }
+    } else {
+      logMessage(logTypeError, $.t('Error getting actions'));
+    }
+  })
+  .fail(function() {
+    logMessage(logTypeError, $.t('Error getting actions'));
+  })
 	
 	// get schedules list
-	var schedules = sendGetRequest(globalConfig.angharad_location + '/SCHEDULES');
-	if (schedules.result) {
-		angharad.schedules = [];
-		for (key in schedules.json.schedules) {
-			angharad.schedules[schedules.json.schedules[key].id] = schedules.json.schedules[key];
-		}
-	}
+  var url = globalConfig.angharad_location + '/SCHEDULES';
+  $.get( url, function(data) {
+    var response = parseResponse(data);
+    if (response.result) {
+      var htmlSchedules = schedulesContainerTemplate.replace(/%DISPLAY%/g, $.t('All schedules'));
+      var index = 0;
+      $('#schedules-div').append(htmlSchedules);
+      angharad.schedules = [];
+      for (key in response.json.schedules) {
+        var curSchedule = response.json.schedules[key];
+        displayScheduleInGroup(curSchedule, tabScriptsSchedulesId, '-1', index);
+        index++;
+        angharad.schedules[curSchedule.id] = curSchedule;
+      }
+      
+      $('#fold-schedules').click(function() {
+        var profile = getCurrentProfile();
+        $('#container-schedules').slideToggle();
+        if (profile.options.foldSchedules == undefined) {
+          profile.options.foldSchedules = false;
+        }
+        profile.options.foldSchedules = !profile.options.foldSchedules;
+        updateProfile(profile);
+      });
+      
+      $('#new-schedule').click(function() {
+        editSchedule(null);
+      });
+      
+      $('.schedule-attached').click(function() {
+        return false;
+      });
+      
+      var profile = getCurrentProfile();
+      if (profile.options.foldSchedules == true) {
+        $('#container-schedules').show();
+      } else {
+        $('#container-schedules').hide();
+      }
+
+      // get scripts list
+      var url = globalConfig.angharad_location + '/SCRIPTS';
+      $.get( url, function(data) {
+        var response = parseResponse(data);
+        if (response.result) {
+          var curProfileId = getCurrentProfile().id;
+          var htmlScripts = scriptsContainerTemplate.replace(/%DISPLAY%/g, $.t('All scripts'));
+          var index = 0;
+          $('#scripts-div').append(htmlScripts);
+          angharad.scripts = [];
+          for (key in response.json.scripts) {
+            var curScript = response.json.scripts[key];
+            angharad.scripts[curScript.id] = curScript;
+            for (tag in curScript.tags) {
+              if (curScript.tags[tag].indexOf(globalConfig.tags_prefix + '#' + curProfileId + '#') == 0) {
+                displayScriptInGroup(curScript, curScript.tags[tag].split('#')[2], curScript.tags[tag].split('#')[3], parseInt(curScript.tags[tag].split('#')[4]));
+              }
+            }
+            
+            displayScriptInGroup(curScript, tabScriptsSchedulesId, '-1', index);
+            updateScriptHoverDisplay(curScript);
+            index++;
+          }
+        
+          $('#fold-scripts').click(function() {
+            var profile = getCurrentProfile();
+            $('#container-scripts').slideToggle();
+            if (profile.options.foldScripts == undefined) {
+              profile.options.foldScripts = false;
+            }
+            profile.options.foldScripts = !profile.options.foldScripts;
+            updateProfile(profile);
+          });
+          
+          $('#new-script').click(function() {
+            editScript(null);
+          });
+          
+          var profile = getCurrentProfile();
+          if (profile.options.foldScripts == true) {
+            $('#container-scripts').show();
+          } else {
+            $('#container-scripts').hide();
+          }
+        } else {
+          logMessage(logTypeError, $.t('Error getting scripts'));
+        }
+      })
+      .fail(function() {
+        logMessage(logTypeError, $.t('Error getting scripts'));
+      })
+   } else {
+      logMessage(logTypeError, $.t('Error getting'));
+    }
+  })
+  .fail(function() {
+    logMessage(logTypeError, $.t('Error getting'));
+  })
 	
 	angharad.ready = true;
 }
 
 /**
- * Build switches and dimmer buttons and display them in the switches tab
+ * Display the device elements in all tabs
  */
-function initSwitchesTab() {
-	var curProfileId = getCurrentProfile().id;
-	if (angharad.ready) {
-    var groupList = getGroupList(tabSwitchesDimmersId);
-		for (dekey in angharad.device) {
-			var device = angharad.device[dekey].name;
-			var deviceDisplay = '';
-			for (dev in angharad.devices) {
-        tabContent[tabSwitchesDimmersId][angharad.devices[dev].name] = [];
-				if (angharad.devices[dev].name === device) {
-					deviceDisplay = angharad.devices[dev].display;
-				}
-			}
-			var htmlDevice = switchDimmerContainerTemplate.replace(/%DEVICE%/g, device).replace(/%DISPLAY%/g, deviceDisplay);
-			$('#switches-content').append(htmlDevice);
+function displayDevice(device) {
+  var curProfileId = getCurrentProfile().id;
+  
+  var htmlDevice = switchDimmerContainerTemplate.replace(/%DEVICE%/g, device.name).replace(/%DISPLAY%/g, angharad.devices[device.name].display);
+  $('#switches-content').append(htmlDevice);
+  
+  // Display switches
+  for (sw in device.switches) {
+    var curSwitch = device.switches[sw];
+    var index=0;
+    
+    for (tag in curSwitch.tags) {
+      if (curSwitch.tags[tag].indexOf(globalConfig.tags_prefix + '#' + curProfileId + '#') == 0) {
+        displaySwitchInGroup(device.name, curSwitch, curSwitch.tags[tag].split('#')[2], curSwitch.tags[tag].split('#')[3], parseInt(curSwitch.tags[tag].split('#')[4]));
+      }
     }
-    for (key in groupList) {
-      tabContent[tabSwitchesDimmersId][groupList[key].id] = [];
-      var htmlGroup = tabGroupTemplate.replace(/%TAB%/g, tabSwitchesDimmersId).replace(/%GROUP%/g, groupList[key].id).replace(/%DISPLAY%/g, groupList[key].display);
-      $('#switches-content').append(htmlGroup);
+    displaySwitchInGroup(device.name, curSwitch, tabSwitchesDimmersId, '-1', index);
+    index++;
+  }
+  
+  // Display dimmers
+  for (di in device.dimmers) {
+    var curDimmer = device.dimmers[di];
+    var index=0;
+    
+    for (tag in curDimmer.tags) {
+      if (curDimmer.tags[tag].indexOf(globalConfig.tags_prefix + '#' + curProfileId + '#') == 0) {
+        displayDimmerInGroup(device.name, curDimmer, curDimmer.tags[tag].split('#')[2], curDimmer.tags[tag].split('#')[3], parseInt(curDimmer.tags[tag].split('#')[4]));
+      }
     }
-		for (dekey in angharad.device) {
-			var device = angharad.device[dekey].name;
-			var inDeviceGroup = false;
-			var index=0;
-
-			for (swkey in angharad.device[dekey].switches) {
-				var curSwitch = angharad.device[dekey].switches[swkey];
-				
-				for (tag in curSwitch.tags) {
-					if (curSwitch.tags[tag].indexOf(globalConfig.tags_prefix + '#' + curProfileId + '#') == 0) {
-            if (tabContent[curSwitch.tags[tag].split('#')[2]] != undefined && tabContent[curSwitch.tags[tag].split('#')[2]][curSwitch.tags[tag].split('#')[3]]) {
-              displaySwitchInGroup(device, curSwitch, curSwitch.tags[tag].split('#')[2], curSwitch.tags[tag].split('#')[3], parseInt(curSwitch.tags[tag].split('#')[4]));
-            }
-					}
-				}
-        displaySwitchInGroup(device, curSwitch, tabSwitchesDimmersId, '-1', index);
-        index++;
-			}
-			
-			for (dikey in angharad.device[dekey].dimmers) {
-				var curDimmer = angharad.device[dekey].dimmers[dikey];
-				
-				for (tag in curDimmer.tags) {
-					if (curDimmer.tags[tag].indexOf(globalConfig.tags_prefix + '#' + curProfileId + '#') == 0) {
-            if (tabContent[curDimmer.tags[tag].split('#')[2]] != undefined && tabContent[curDimmer.tags[tag].split('#')[2]][curDimmer.tags[tag].split('#')[3]]) {
-              displayDimmerInGroup(device, curDimmer, curDimmer.tags[tag].split('#')[2], curDimmer.tags[tag].split('#')[3], parseInt(curDimmer.tags[tag].split('#')[4]));
-            }
-					}
-				}
-        displayDimmerInGroup(device, curDimmer, tabSwitchesDimmersId, '-1', index);
-        index++;
-			}
-		}
-	}
+    displayDimmerInGroup(device.name, curDimmer, tabSwitchesDimmersId, '-1', index);
+    index++;
+  }
+  
+  // Display heaters
+  var htmlDevice = heaterContainerTemplate.replace(/%DEVICE%/g, device.name).replace(/%DISPLAY%/g, angharad.devices[device.name].display);
+  $('#heaters-content').append(htmlDevice);
+  for (he in device.heaters) {
+    var curHeater = device.heaters[he];
+    var index=0;
+    
+    for (tag in curHeater.tags) {
+      if (curHeater.tags[tag].indexOf(globalConfig.tags_prefix + '#' + curProfileId + '#') == 0) {
+        displayHeaterInGroup(device.name, curHeater, curHeater.tags[tag].split('#')[2], curHeater.tags[tag].split('#')[3], parseInt(curHeater.tags[tag].split('#')[4]));
+      }
+    }
+    displayHeaterInGroup(device.name, curHeater, tabHeatersId, '-1', index);
+    index++;
+  }
+  
+  // Display sensors
+  var htmlDevice = sensorContainerTemplate.replace(/%DEVICE%/g, device.name).replace(/%DISPLAY%/g, angharad.devices[device.name].display);
+  $('#sensors-content').append(htmlDevice);
+  for (se in device.sensors) {
+    var curSensor = device.sensors[se];
+    var index=0;
+    
+    for (tag in curSensor.tags) {
+      if (curSensor.tags[tag].indexOf(globalConfig.tags_prefix + '#' + curProfileId + '#') == 0) {
+        displaySensorInGroup(device.name, curSensor, curSensor.tags[tag].split('#')[2], curSensor.tags[tag].split('#')[3], parseInt(curSensor.tags[tag].split('#')[4]));
+      }
+    }
+    displaySensorInGroup(device.name, curSensor, tabSensorsId, '-1', index);
+    index++;
+  }
 }
 
 /**
@@ -311,17 +460,24 @@ function initDimmer(curName, curDimmer) {
       if (event == null || event.originalEvent) {
         var dimmerId = $(this).attr('data-an-name');
         var deviceId = $(this).attr('data-an-device');
-        var changeDimmer = sendGetRequest(globalConfig.angharad_location + '/SETDIMMER/'+deviceId+'/'+dimmerId+'/'+$(this).slider( 'value' ));
-        if (!changeDimmer.result) {
-          var $label = $('#label-dimmer-'+curName);
-          var originalLabel = $label.attr('data-an-label');
-          $label.text(originalLabel + ' - ' + $.t('Error setting dimmer'));
-          setTimeout(function() {
-            $label.text(originalLabel);
-          }, 10000);
-        } else {
-          updateAllDimmers(deviceId, dimmerId, $(this).slider( 'value' ));
-        }
+        var url = globalConfig.angharad_location + '/SETDIMMER/'+deviceId+'/'+dimmerId+'/'+$(this).slider( 'value' );
+        var self = $(this);
+        $.get( url, function(data) {
+          var response = parseResponse(data);
+          if (response.result) {
+            updateAllDimmers(deviceId, dimmerId, self.slider( 'value' ));
+          } else {
+            var $label = $('#label-dimmer-'+curName);
+            var originalLabel = $label.attr('data-an-label');
+            $label.text(originalLabel + ' - ' + $.t('Error setting dimmer'));
+            setTimeout(function() {
+              $label.text(originalLabel);
+            }, 10000);
+          }
+        })
+        .fail(function() {
+          logMessage(logTypeError, $.t('Error setting dimmer'));
+        });
       }
     }
   });
@@ -329,59 +485,25 @@ function initDimmer(curName, curDimmer) {
     var dimmerId = $(this).attr('data-an-name');
     var deviceId = $(this).attr('data-an-device');
     var value = $(this).attr('data-an-name-value');
-    var changeDimmer = sendGetRequest(globalConfig.angharad_location+'/SETDIMMER/'+deviceId+'/'+dimmerId+'/'+value);
-    if (changeDimmer.result) {
-      updateAllDimmers(deviceId, dimmerId, value);
-    } else {
-			logMessage(logTypeError, $.t('Error setting dimmer'));
-    }
+    var url = globalConfig.angharad_location + '/SETDIMMER/'+deviceId+'/'+dimmerId+'/'+$(this).attr( 'data-an-value' );
+    var self = $(this);
+    $.get( url, function(data) {
+      var response = parseResponse(data);
+      if (response.result) {
+        updateAllDimmers(deviceId, dimmerId, self.attr( 'data-an-value' ));
+      } else {
+        var $label = $('#label-dimmer-'+curName);
+        var originalLabel = $label.attr('data-an-label');
+        $label.text(originalLabel + ' - ' + $.t('Error setting dimmer'));
+        setTimeout(function() {
+          $label.text(originalLabel);
+        }, 10000);
+      }
+    })
+    .fail(function() {
+      logMessage(logTypeError, $.t('Error getting'));
+    });
   });
-}
-
-/**
- * Build switches and dimmer buttons and display them in the switches tab
- */
-function initHeatersTab() {
-	var curProfileId = getCurrentProfile().id;
-	if (angharad.ready) {
-    var groupList = getGroupList(tabHeatersId);
-		for (dekey in angharad.device) {
-			var device = angharad.device[dekey].name;
-			var deviceDisplay = '';
-			var index=0;
-			for (dev in angharad.devices) {
-        tabContent[tabHeatersId][angharad.devices[dev].name] = [];
-				if (dev === device) {
-					deviceDisplay = angharad.devices[dev].display;
-				}
-			}
-			var htmlDevice = heaterContainerTemplate.replace(/%DEVICE%/g, device).replace(/%DISPLAY%/g, deviceDisplay);
-			$('#heaters-content').append(htmlDevice);
-    }
-    for (key in groupList) {
-      tabContent[tabHeatersId][groupList[key].id] = [];
-      var htmlGroup = tabGroupTemplate.replace(/%TAB%/g, tabHeatersId).replace(/%GROUP%/g, groupList[key].id).replace(/%DISPLAY%/g, groupList[key].display);
-      $('#heaters-content').append(htmlGroup);
-    }
-		for (dekey in angharad.device) {
-			var device = angharad.device[dekey].name;
-			var inDeviceGroup = false;
-			var $containerHeaters = undefined;
-			for (hekey in angharad.device[dekey].heaters) {
-				var curHeater = angharad.device[dekey].heaters[hekey];
-				
-				for (tag in curHeater.tags) {
-					if (curHeater.tags[tag].indexOf(globalConfig.tags_prefix + '#' + curProfileId + '#') == 0) {
-            if (tabContent[curHeater.tags[tag].split('#')[2]] != undefined && tabContent[curHeater.tags[tag].split('#')[2]][curHeater.tags[tag].split('#')[3]] != undefined) {
-              displayHeaterInGroup(device, curHeater, curHeater.tags[tag].split('#')[2], curHeater.tags[tag].split('#')[3], parseInt(curHeater.tags[tag].split('#')[4]));
-            }
-					}
-				}
-        displayHeaterInGroup(device, curHeater, tabHeatersId, '-1', index);
-        index++;
-			}
-		}
-	}
 }
 
 /**
@@ -400,209 +522,60 @@ function initHeater(curName, curHeater) {
 			if (event.originalEvent) {
 				var heaterId = $(this).attr('data-an-heater');
 				var device = $(this).attr('data-an-device');
-				var response = sendGetRequest(globalConfig.angharad_location+'/SETHEATER/'+device+'/'+heaterId+'/1/'+$(this).slider( 'value' ));
-				if (!response.result) {
-					var $label = $('#label-heater-'+curName);
-					$label.text($label.attr('data-an-label') + ' - ' + $.t('Error setting heater'));
-					setTimeout(function() {
-						$label.text($label.attr('data-an-label'));
-					}, 10000);
-				} else {
-					updateAllHeaters(device, heaterId, curHeater.set, $(this).slider( 'value' ), curHeater.unit);
-				}
+        var url = globalConfig.angharad_location+'/SETHEATER/'+device+'/'+heaterId+'/1/'+$(this).slider( 'value' );
+        var self = $(this);
+        $.get( url, function(data) {
+          var response = parseResponse(data);
+          if (response.result) {
+            updateAllHeaters(device, heaterId, curHeater.set, self.slider( 'value' ), curHeater.unit);
+          } else {
+            var $label = $('#label-heater-'+curName);
+            $label.text($label.attr('data-an-label') + ' - ' + $.t('Error setting heater'));
+            setTimeout(function() {
+              $label.text($label.attr('data-an-label'));
+            }, 10000);
+          }
+        })
+        .fail(function() {
+          logMessage(logTypeError, $.t('Error getting'));
+        });
 			}
 		}
 	});
 	$('#he-'+curName).change(function() {
 		var $check = $('#he-'+curName);
-		var heaterId = $(this).attr('data-an-heater');
+		var heaterId = $(this).attr('data-an-name');
 		var device = $(this).attr('data-an-device');
 		var isChecked = $(this).prop('checked');
 		var $check = $(this);
 		var value = $('#he-slide-'+curName).slider( 'value' );
 		var unit = $(this).attr('data-an-unit');
-		var response = sendGetRequest(globalConfig.angharad_location+'/SETHEATER/'+device+'/'+heaterId+'/'+(isChecked?'1':'0')+'/'+value);
-		if (!response.result) {
-			var $label = $('#label-heater-'+curName);
-			$label.text($label.attr('data-an-label') + ' - ' + $.t('Error setting heater'));
-			$check.prop('checked', !isChecked);
-			$check.prop('disabled', true);
-			$('#he-slide-'+curName).slider('option', 'disabled', true);
-			setTimeout(function() {
-				$label.text($label.attr('data-an-label'));
-				$check.prop('disabled', false);
-				$('#he-slide-'+curName).slider('option', 'disabled', isChecked);
-			}, 10000);
-		} else {
-			updateAllHeaters(device, heaterId, isChecked, value, unit);
-		}
+    var url = globalConfig.angharad_location+'/SETHEATER/'+device+'/'+heaterId+'/'+(isChecked?'1':'0')+'/'+value;
+    $.get( url, function(data) {
+      var response = parseResponse(data);
+      if (response.result) {
+        updateAllHeaters(device, heaterId, isChecked, value, unit);
+      } else {
+        var $label = $('#label-heater-'+curName);
+        $label.text($label.attr('data-an-label') + ' - ' + $.t('Error setting heater'));
+        $check.prop('checked', !isChecked);
+        $check.prop('disabled', true);
+        $('#he-slide-'+curName).slider('option', 'disabled', true);
+        setTimeout(function() {
+          $label.text($label.attr('data-an-label'));
+          $check.prop('disabled', false);
+          $('#he-slide-'+curName).slider('option', 'disabled', isChecked);
+        }, 10000);
+      }
+    })
+    .fail(function() {
+      logMessage(logTypeError, $.t('Error getting'));
+    });
 		$('#he-slide-'+curName).slider('option', 'disabled', !$(this).prop('checked'));
 	});
 	if (!curHeater.enabled) {
 		$('#label-he-slide-'+curName).hide();
 		$('#he-slide-'+curName).hide();
-	}
-}
-
-/**
- * Build switches and dimmer buttons and display them in the switches tab
- */
-function initSensorsTab() {
-	var curProfileId = getCurrentProfile().id;
-	if (angharad.ready) {
-    var groupList = getGroupList(tabSensorsId);
-		for (dekey in angharad.device) {
-			var device = angharad.device[dekey].name;
-			var deviceDisplay = '';
-			var index=0;
-			for (dev in angharad.devices) {
-        tabContent[tabSensorsId][dev] = [];
-				if (dev === device) {
-					deviceDisplay = angharad.devices[dev].display;
-				}
-			}
-			var htmlDevice = sensorContainerTemplate.replace(/%DEVICE%/g, device).replace(/%DISPLAY%/g, deviceDisplay);
-			$('#sensors-content').append(htmlDevice);
-    }
-    for (key in groupList) {
-      tabContent[tabSensorsId][groupList[key].id] = [];
-      var htmlGroup = tabGroupTemplate.replace(/%TAB%/g, tabSensorsId).replace(/%GROUP%/g, groupList[key].id).replace(/%DISPLAY%/g, groupList[key].display);
-      $('#sensors-content').append(htmlGroup);
-    }
-		for (dekey in angharad.device) {
-			var device = angharad.device[dekey].name;
-			var $containerSensors = undefined;
-			for (sekey in angharad.device[dekey].sensors) {
-				var curSensor = angharad.device[dekey].sensors[sekey];
-				
-				for (tag in curSensor.tags) {
-					if (curSensor.tags[tag].indexOf(globalConfig.tags_prefix + '#' + curProfileId + '#') == 0) {
-            if (tabContent[curSensor.tags[tag].split('#')[2]] != undefined && tabContent[curSensor.tags[tag].split('#')[2]][curSensor.tags[tag].split('#')[3]] != undefined) {
-              displaySensorInGroup(device, curSensor, curSensor.tags[tag].split('#')[2], curSensor.tags[tag].split('#')[3], parseInt(curSensor.tags[tag].split('#')[4]));
-            }
-					}
-				}
-        displaySensorInGroup(device, curSensor, tabSensorsId, '-1', index);
-        index++;
-			}
-		}
-	}
-}
-
-/**
- * Initialize the Scripts, actions and scheduled tasks tab
- */
-function initScriptsTab() {
-	var profile = getCurrentProfile();
-	var curProfileId = profile.id;
-	if (angharad.ready) {
-    
-    // Scripts
-		var htmlScripts = scriptsContainerTemplate.replace(/%DISPLAY%/g, $.t('All scripts'));
-		var index = 0;
-		$('#scripts-content').append(htmlScripts);
-		tabContent[tabScriptsSchedulesId]['-1'] = [];
-		
-		for (key in angharad.scripts) {
-			var curScript = angharad.scripts[key];
-      
-      for (tag in curScript.tags) {
-        if (curScript.tags[tag].indexOf(globalConfig.tags_prefix + '#' + curProfileId + '#') == 0) {
-          if (tabContent[curScript.tags[tag].split('#')[2]] != undefined && tabContent[curScript.tags[tag].split('#')[2]][curScript.tags[tag].split('#')[3]] != undefined) {
-            displayScriptInGroup(curScript, curScript.tags[tag].split('#')[2], curScript.tags[tag].split('#')[3], parseInt(curScript.tags[tag].split('#')[4]));
-          }
-        }
-      }
-      
-			displayScriptInGroup(curScript, tabScriptsSchedulesId, '-1', index);
-			updateScriptHoverDisplay(curScript);
-			index++;
-		}
-		
-		$('#fold-scripts').click(function() {
-			$('#container-scripts').slideToggle();
-			if (profile.options.foldScripts == undefined) {
-				profile.options.foldScripts = false;
-			}
-			profile.options.foldScripts = !profile.options.foldScripts;
-			updateProfile(profile);
-		});
-		
-		$('#new-script').click(function() {
-			editScript(null);
-		});
-    
-    // Schedules
-		var htmlSchedules = schedulesContainerTemplate.replace(/%DISPLAY%/g, $.t('All schedules'));
-		var index = 0;
-		$('#scripts-content').append(htmlSchedules);
-		tabContent[tabScriptsSchedulesId]['-1'] = [];
-		
-		for (key in angharad.schedules) {
-			var curSchedule = angharad.schedules[key];
-			displayScheduleInGroup(curSchedule, tabScriptsSchedulesId, '-1', index);
-			index++;
-		}
-		
-		$('#fold-schedules').click(function() {
-			$('#container-schedules').slideToggle();
-			if (profile.options.foldSchedules == undefined) {
-				profile.options.foldSchedules = false;
-			}
-			profile.options.foldSchedules = !profile.options.foldSchedules;
-			updateProfile(profile);
-		});
-		
-		$('#new-schedule').click(function() {
-			editSchedule(null);
-		});
-		
-		$('.schedule-attached').click(function() {
-			return false;
-		});
-		
-    // Actions
-		var htmlActions = actionsContainerTemplate.replace(/%DISPLAY%/g, $.t('All actions'));
-		var index = 0;
-		$('#scripts-content').append(htmlActions);
-		tabContent[tabScriptsSchedulesId]['-1'] = [];
-		
-		for (key in angharad.actions) {
-			var curAction = angharad.actions[key];
-			displayActionInGroup(curAction, tabScriptsSchedulesId, '-1', index);
-			index++;
-		}
-		
-		$('#fold-actions').click(function() {
-			$('#container-actions').slideToggle();
-			if (profile.options.foldActions == undefined) {
-				profile.options.foldActions = false;
-			}
-			profile.options.foldActions = !profile.options.foldActions;
-			updateProfile(profile);
-		});
-		
-		$('#new-action').click(function() {
-			editAction(null);
-		});
-	}
-
-	if (profile.options.foldScripts == true) {
-		$('#container-scripts').show();
-	} else {
-		$('#container-scripts').hide();
-	}
-	
-	if (profile.options.foldSchedules == true) {
-		$('#container-schedules').show();
-	} else {
-		$('#container-schedules').hide();
-	}
-	
-	if (profile.options.foldActions == true) {
-		$('#container-actions').show();
-	} else {
-		$('#container-actions').hide();
 	}
 }
 
@@ -661,28 +634,28 @@ function displayMonitor($container, name, display) {
   var options = '';
 
   // fille monitor-add-element- select with all switches, dimmers, heaters and sensors
-  for (de in angharad.devices) {
+  for (de in angharad.device) {
     for (sw in angharad.device[de].sensors) {
       var curElt = angharad.device[de].sensors[sw];
-      if (curElt.enabled) {
+      if (curElt.enabled && curElt.monitored) {
         options += '<option value="'+curElt.name+'" data-an-type="sensor" data-an-device="'+de+'">'+curElt.display+'</option>\n';
       }
     }
     for (sw in angharad.device[de].heaters) {
       var curElt = angharad.device[de].heaters[sw];
-      if (curElt.enabled) {
+      if (curElt.enabled && curElt.monitored) {
         options += '<option value="'+curElt.name+'" data-an-type="heater" data-an-device="'+de+'">'+curElt.display+'</option>\n';
       }
     }
     for (sw in angharad.device[de].switches) {
       var curElt = angharad.device[de].switches[sw];
-      if (curElt.enabled) {
+      if (curElt.enabled && curElt.monitored) {
         options += '<option value="'+curElt.name+'" data-an-type="switch" data-an-device="'+de+'">'+curElt.display+'</option>\n';
       }
     }
     for (sw in angharad.device[de].dimmers) {
       var curElt = angharad.device[de].dimmers[sw];
-      if (curElt.enabled) {
+      if (curElt.enabled && curElt.monitored) {
         options += '<option value="'+curElt.name+'" data-an-type="dimmer" data-an-device="'+de+'">'+curElt.display+'</option>\n';
       }
     }
@@ -761,6 +734,7 @@ function updateMonitorDisplay(name) {
   var plotMatrices = [];
   var colors = [];
   var curDate = new Date();
+  var count = 0;
   
   for (mon in profile.options.monitors) {
     if (profile.options.monitors[mon].name == name) {
@@ -826,77 +800,94 @@ function updateMonitorDisplay(name) {
               + '/' + (element.type=='heater'?element.name:'')
               + '/' + startDate;
     
-    var response = sendGetRequest(url);
-    
-    if (response.result) {
-      if (response.json.monitor.values.length > 0) {
-        for (i in response.json.monitor.values) {
-          var d = new Date(0);
-          d.setUTCSeconds(response.json.monitor.values[i].date_time);
-          plotMatrix.push([d, parseFloat(response.json.monitor.values[i].value)]); 
-        }
-        plotMatrices.push(plotMatrix);
-        colors.push(element.color);
-      }
-      if (element.type == 'switch') {
-        for (elt in angharad.device[element.device].switches) {
-          if (angharad.device[element.device].switches[elt].name == element.name) {
-            $('#div-monitor-series-'+name).append('<span id="span-tag-'+element.device+'-'+element.name+'" class="tag label label-info">'+
-                                                  angharad.device[element.device].switches[elt].display+
-                                                  '<span id="span-tag-remove-'+element.device+'-'+element.name+'" data-role="remove"></span></span>');
-          }
-        }
-      } else if (element.type == 'dimmer') {
-        for (elt in angharad.device[element.device].dimmers) {
-          if (angharad.device[element.device].dimmers[elt].name == element.name) {
-            $('#div-monitor-series-'+name).append('<span id="span-tag-'+element.device+'-'+element.name+'" class="tag label label-info">'+
-                                                  angharad.device[element.device].dimmers[elt].display+
-                                                  '<span id="span-tag-remove-'+element.device+'-'+element.name+'" data-role="remove"></span></span>');
-          }
-        }
-      } else if (element.type == 'heater') {
-        for (elt in angharad.device[element.device].heaters) {
-          if (angharad.device[element.device].heaters[elt].name == element.name) {
-            $('#div-monitor-series-'+name).append('<span id="span-tag-'+element.device+'-'+element.name+'" class="tag label label-info">'+
-                                                  angharad.device[element.device].heaters[elt].display+
-                                                  '<span id="span-tag-remove-'+element.device+'-'+element.name+'" data-role="remove"></span></span>');
-          }
-        }
-      } else if (element.type == 'sensor') {
-        for (elt in angharad.device[element.device].sensors) {
-          if (angharad.device[element.device].sensors[elt].name == element.name) {
-            $('#div-monitor-series-'+name).append('<span id="span-tag-'+element.device+'-'+element.name+'" class="tag label label-info">'+
-                                                  angharad.device[element.device].sensors[elt].display+
-                                                  '<span id="span-tag-remove-'+element.device+'-'+element.name+'" data-an-type="'+element.type+'" data-an-device="'+element.device+'" data-an-name="'+element.name+'" data-role="remove"></span></span>');
-          }
+    colors.push(element.color);
+    if (element.type == 'switch') {
+      for (elt in angharad.device[element.device].switches) {
+        if (angharad.device[element.device].switches[elt].name == element.name) {
+          $('#div-monitor-series-'+name).append('<span id="span-tag-'+element.device+'-'+element.name+'" class="tag label label-info">'+
+                                                angharad.device[element.device].switches[elt].display+
+                                                '<span id="span-tag-remove-'+element.device+'-'+element.name+'" data-role="remove"></span></span>');
         }
       }
-      $('#span-tag-'+element.device+'-'+element.name).css('background-color', element.color);
-      $('#span-tag-remove-'+element.device+'-'+element.name).click(function() {
-        var profile = getCurrentProfile();
-        for (mon in profile.options.monitors) {
-          if (profile.options.monitors[mon].name == name) {
-            var monitor = profile.options.monitors[mon];
-            for (elt in monitor.elements) {
-              var element = monitor.elements[elt];
-              if (element.type == $(this).attr('data-an-type') && 
-                  element.device == $(this).attr('data-an-device') && 
-                  element.name == $(this).attr('data-an-name')) {
-                    // Remove this element from the profile, then reload the chart
-                monitor.elements.splice(elt, 1);
-                profile.options.monitors[mon] = monitor;
-                updateProfile(profile);
-                updateMonitorDisplay(name);
-              }
+    } else if (element.type == 'dimmer') {
+      for (elt in angharad.device[element.device].dimmers) {
+        if (angharad.device[element.device].dimmers[elt].name == element.name) {
+          $('#div-monitor-series-'+name).append('<span id="span-tag-'+element.device+'-'+element.name+'" class="tag label label-info">'+
+                                                angharad.device[element.device].dimmers[elt].display+
+                                                '<span id="span-tag-remove-'+element.device+'-'+element.name+'" data-role="remove"></span></span>');
+        }
+      }
+    } else if (element.type == 'heater') {
+      for (elt in angharad.device[element.device].heaters) {
+        if (angharad.device[element.device].heaters[elt].name == element.name) {
+          $('#div-monitor-series-'+name).append('<span id="span-tag-'+element.device+'-'+element.name+'" class="tag label label-info">'+
+                                                angharad.device[element.device].heaters[elt].display+
+                                                '<span id="span-tag-remove-'+element.device+'-'+element.name+'" data-role="remove"></span></span>');
+        }
+      }
+    } else if (element.type == 'sensor') {
+      for (elt in angharad.device[element.device].sensors) {
+        if (angharad.device[element.device].sensors[elt].name == element.name) {
+          $('#div-monitor-series-'+name).append('<span id="span-tag-'+element.device+'-'+element.name+'" class="tag label label-info">'+
+                                                angharad.device[element.device].sensors[elt].display+
+                                                '<span id="span-tag-remove-'+element.device+'-'+element.name+'" data-an-type="'+element.type+'" data-an-device="'+element.device+'" data-an-name="'+element.name+'" data-role="remove"></span></span>');
+        }
+      }
+    }
+    $('#span-tag-'+element.device+'-'+element.name).css('background-color', element.color);
+    $('#span-tag-remove-'+element.device+'-'+element.name).click(function() {
+      var profile = getCurrentProfile();
+      for (mon in profile.options.monitors) {
+        if (profile.options.monitors[mon].name == name) {
+          var monitor = profile.options.monitors[mon];
+          for (elt in monitor.elements) {
+            var element = monitor.elements[elt];
+            if (element.type == $(this).attr('data-an-type') && 
+                element.device == $(this).attr('data-an-device') && 
+                element.name == $(this).attr('data-an-name')) {
+              // Remove this element from the profile, then reload the chart
+              monitor.elements.splice(elt, 1);
+              profile.options.monitors[mon] = monitor;
+              updateProfile(profile);
+              updateMonitorDisplay(name);
             }
           }
         }
-      });
-    } else {
+      }
+    });
+    $.get( url, function(data) {
+      var response = parseResponse(data);
+      if (response.result) {
+        if (response.json.monitor.values.length > 0) {
+          plotMatrix = [];
+          for (i in response.json.monitor.values) {
+            var d = new Date(0);
+            d.setUTCSeconds(response.json.monitor.values[i].date_time);
+            plotMatrix.push([d, parseFloat(response.json.monitor.values[i].value)]); 
+          }
+          plotMatrices.push(plotMatrix);
+        }
+      } else {
+        logMessage(logTypeError, $.t('Error getting monitor ')+url);
+      }
+    })
+    .fail(function() {
       logMessage(logTypeError, $.t('Error getting monitor ')+url);
-    }
+    })
+    .complete(function() {
+      count++
+      if (count == monitor.elements.length) {
+        showMonitor(name, plotMatrices, colors);
+      }
+    });
   }
-  
+}
+
+/**
+ * Show the monitor
+ */
+function showMonitor(name, plotMatrices, colors) {
+  console.log(name, plotMatrices, colors);
   if (plotMatrices.length > 0) {
     $('#div-monitor-chart-'+name).empty().fadeIn(function() {
       var plot = $.jqplot('div-monitor-chart-'+name, plotMatrices, {
@@ -937,11 +928,23 @@ function setSwitchValue(device, switcher, value) {
 	var $message = $('#message-'+device+'-'+switcher);
 	var $switch = $('#sw-'+device+'-'+switcher);
 	$message.text('...');
-	var switchResponse = sendGetRequest(globalConfig.angharad_location+'/SETSWITCH/'+device+'/'+switcher+'/'+value);
-	if (switchResponse.result) {
-		$message.text('');
-		updateAllSwitch(device, switcher, value);
-	} else {
+  var url = globalConfig.angharad_location+'/SETSWITCH/'+device+'/'+switcher+'/'+value;
+  $.get( url, function(data) {
+    var response = parseResponse(data);
+    if (response.result) {
+      $message.text('');
+      updateAllSwitch(device, switcher, value);
+    } else {
+      $message.text(' '+$.t('Error setting switch'));
+      $switch.prop('checked', !$switch.prop('checked'));
+      $switch.prop('disabled', true);
+      setTimeout(function() {
+        $message.text('');
+        $switch.prop('disabled', false);
+      }, 10000);
+    }
+  })
+  .fail(function() {
 		$message.text(' '+$.t('Error setting switch'));
 		$switch.prop('checked', !$switch.prop('checked'));
 		$switch.prop('disabled', true);
@@ -949,7 +952,7 @@ function setSwitchValue(device, switcher, value) {
 			$message.text('');
 			$switch.prop('disabled', false);
 		}, 10000);
-	}
+  });
 }
 
 /**
@@ -1087,40 +1090,43 @@ function editSwitch($switchAdminButton) {
  */
 function okDialogSwitch(curDevice, curName, curDisplay, curType, curEnabled, curMonitored, curMonitoredEvery, curTags) {
 	var url = globalConfig.angharad_location+'/SETSWITCHDATA/';
-	var response = sendPostRequest(url,
-		{name: curName, device: curDevice, display: curDisplay, type: curType, enabled: curEnabled, monitored: curMonitored, monitored_every: curMonitoredEvery, tags: curTags}
-	);
-	
-	if (response.result) {
-		var json = response.json;
-		var $p = $('#p-switch-'+curDevice+'-'+curName);
-		if (json.switch.enabled) {
-			$p.removeClass('p-hidden');
-		} else {
-			$p.addClass('p-hidden');
-			$p.show();
-		}
-		if (json.switch.type == 0) {
-			$p.removeClass('sw-type-nc');
-			$p.removeClass('sw-type-tw');
-		} else if (json.switch.type == 1) {
-			$p.addClass('sw-type-nc');
-			$p.removeClass('sw-type-tw');
-		} else if (json.switch.type == 2) {
-			$p.removeClass('sw-type-nc');
-			$p.addClass('sw-type-tw');
-		}
-		var $label = $('#label-sw-'+curDevice+'-'+curName);
-		$label.text(json.switch.display);
-		
-		for (var i=0; i<angharad.device[curDevice].switches.length; i++) {
-			if (angharad.device[curDevice].switches[i].name == curName) {
-				angharad.device[curDevice].switches[i] = json.switch;
-			}
-		}
-	} else {
-		logMessage(logTypeError, $.t('Error updating switch'));
-	}
+  $.post(url, {name: curName, device: curDevice, display: curDisplay, type: curType, enabled: curEnabled, monitored: curMonitored, monitored_every: curMonitoredEvery, tags: curTags},
+  function(data) {
+    var response = parseResponse(data);
+    if (response.result) {
+      var json = response.json;
+      var $p = $('#p-switch-'+curDevice+'-'+curName);
+      if (json.switch.enabled) {
+        $p.removeClass('p-hidden');
+      } else {
+        $p.addClass('p-hidden');
+        $p.show();
+      }
+      if (json.switch.type == 0) {
+        $p.removeClass('sw-type-nc');
+        $p.removeClass('sw-type-tw');
+      } else if (json.switch.type == 1) {
+        $p.addClass('sw-type-nc');
+        $p.removeClass('sw-type-tw');
+      } else if (json.switch.type == 2) {
+        $p.removeClass('sw-type-nc');
+        $p.addClass('sw-type-tw');
+      }
+      var $label = $('#label-sw-'+curDevice+'-'+curName);
+      $label.text(json.switch.display);
+      
+      for (var i=0; i<angharad.device[curDevice].switches.length; i++) {
+        if (angharad.device[curDevice].switches[i].name == curName) {
+          angharad.device[curDevice].switches[i] = json.switch;
+        }
+      }
+    } else {
+      logMessage(logTypeError, $.t('Error updating switch'));
+    }
+  })
+  .fail(function() {
+    logMessage(logTypeError, $.t('Error updating switch'));
+  });
 }
 
 /**
@@ -1195,31 +1201,34 @@ function editDimmer($dimmerAdminButton) {
  */
 function okDialogDimmer(curDevice, curName, curDisplay, curEnabled, curMonitored, curMonitoredEvery, curTags) {
 	var url = globalConfig.angharad_location+'/SETDIMMERDATA/';
-	var response = sendPostRequest(url,
-		{name: curName, device: curDevice, display: curDisplay, enabled: curEnabled, monitored: curMonitored, monitored_every: curMonitoredEvery, tags: curTags}
-	);
-	
-	if(response.result) {
-		var json = response.json;
-		if (json.dimmer.enabled) {
-			$('#p-dimmer-'+curDevice+'-'+curName).removeClass('p-hidden');
-		} else {
-			$('#p-dimmer-'+curDevice+'-'+curName).addClass('p-hidden');
-			$('#p-dimmer-'+curDevice+'-'+curName).show();
-		}
-		var $label = $('#label-dimmer-'+curDevice+'-'+curName);
-		var $value = $('#value-dimmer-'+curDevice+'-'+curName);
-		$label.text(json.dimmer.display);
-		$value.text($value.attr('value'));
-		
-		for (var i=0; i<angharad.device[curDevice].dimmers.length; i++) {
-			if (angharad.device[curDevice].dimmers[i].name == curName) {
-				angharad.device[curDevice].dimmers[i] = json.dimmer;
-			}
-		}
-	} else {
-		logMessage(logTypeError, $.t('Error updating dimmer'));
-	}
+  $.post(url, {name: curName, device: curDevice, display: curDisplay, enabled: curEnabled, monitored: curMonitored, monitored_every: curMonitoredEvery, tags: curTags},
+  function(data) {
+    var response = parseResponse(data);
+    if (response.result) {
+      var json = response.json;
+      if (json.dimmer.enabled) {
+        $('#p-dimmer-'+curDevice+'-'+curName).removeClass('p-hidden');
+      } else {
+        $('#p-dimmer-'+curDevice+'-'+curName).addClass('p-hidden');
+        $('#p-dimmer-'+curDevice+'-'+curName).show();
+      }
+      var $label = $('#label-dimmer-'+curDevice+'-'+curName);
+      var $value = $('#value-dimmer-'+curDevice+'-'+curName);
+      $label.text(json.dimmer.display);
+      $value.text($value.attr('value'));
+      
+      for (var i=0; i<angharad.device[curDevice].dimmers.length; i++) {
+        if (angharad.device[curDevice].dimmers[i].name == curName) {
+          angharad.device[curDevice].dimmers[i] = json.dimmer;
+        }
+      }
+    } else {
+      logMessage(logTypeError, $.t('Error updating dimmer'));
+    }
+  })
+  .fail(function() {
+    logMessage(logTypeError, $.t('Error updating dimmer'));
+  });
 }
 
 /**
@@ -1296,34 +1305,37 @@ function editHeater($heaterAdminButton) {
  */
 function okDialogHeater(curDevice, curName, curDisplay, curUnit, curEnabled, curMonitored, curMonitoredEvery, curTags) {
 	var url = globalConfig.angharad_location+'/SETHEATERDATA/';
-	var response = sendPostRequest(url,
-		{name: curName, device: curDevice, display: curDisplay, unit: curUnit, enabled: curEnabled, monitored: curMonitored, monitored_every: curMonitoredEvery, tags: curTags}
-	);
-	
-	if (response.result) {
-		var json = response.json;
-		if (json.heater.enabled) {
-			$('#p-heater-'+curDevice+'-'+curName).removeClass('p-hidden');
-		} else {
-			$('#p-heater-'+curDevice+'-'+curName).addClass('p-hidden');
-			$('#label-he-slide-'+deviceId+'-'+heater.name).show();
-			$('#he-slide-'+deviceId+'-'+heater.name).show();
-			$('#p-heater-'+curDevice+'-'+curName).show();
-		}
-		var $label = $('#label-heater-'+curDevice+'-'+curName);
-		var $value = $('#label-he-slide-'+curDevice+'-'+curName);
-		var $slide = $('#he-slide-'+curDevice+'-'+curName);
-		$label.text(json.heater.display);
-		$value.html($slide.slider('value')+' '+curUnit);
-		
-		for (var i=0; i<angharad.device[curDevice].heaters.length; i++) {
-			if (angharad.device[curDevice].heaters[i].name == curName) {
-				angharad.device[curDevice].heaters[i] = json.heater;
-			}
-		}
-	} else {
-		logMessage(logTypeError, $.t('Error updating heater'));
-	}
+  $.post(url, {name: curName, device: curDevice, display: curDisplay, unit: curUnit, enabled: curEnabled, monitored: curMonitored, monitored_every: curMonitoredEvery, tags: curTags}, 
+  function(data) {
+    var response = parseResponse(data);
+    if (response.result) {
+      var json = response.json;
+      if (json.heater.enabled) {
+        $('#p-heater-'+curDevice+'-'+curName).removeClass('p-hidden');
+      } else {
+        $('#p-heater-'+curDevice+'-'+curName).addClass('p-hidden');
+        $('#label-he-slide-'+deviceId+'-'+heater.name).show();
+        $('#he-slide-'+deviceId+'-'+heater.name).show();
+        $('#p-heater-'+curDevice+'-'+curName).show();
+      }
+      var $label = $('#label-heater-'+curDevice+'-'+curName);
+      var $value = $('#label-he-slide-'+curDevice+'-'+curName);
+      var $slide = $('#he-slide-'+curDevice+'-'+curName);
+      $label.text(json.heater.display);
+      $value.html($slide.slider('value')+' '+curUnit);
+      
+      for (var i=0; i<angharad.device[curDevice].heaters.length; i++) {
+        if (angharad.device[curDevice].heaters[i].name == curName) {
+          angharad.device[curDevice].heaters[i] = json.heater;
+        }
+      }
+    } else {
+      logMessage(logTypeError, $.t('Error updating heater'));
+    }
+  })
+  .fail(function() {
+    logMessage(logTypeError, $.t('Error updating heater'));
+  });
 }
 
 /**
@@ -1401,31 +1413,34 @@ function editSensor($sensorAdminButton) {
  */
 function okDialogSensor(curDevice, curName, curDisplay, curUnit, curEnabled, curMonitored, curMonitoredEvery, curTags) {
 	var url = globalConfig.angharad_location+'/SETSENSORDATA/';
-	var response = sendPostRequest(url,
-		{name: curName, device: curDevice, display: curDisplay, unit: curUnit, enabled: curEnabled, monitored: curMonitored, monitored_every: curMonitoredEvery, tags: curTags}
-	);
-	
-	if (response.result) {
-		var json = response.json;
-		if (json.sensor.enabled) {
-			$('#p-sensor-'+curDevice+'-'+curName).removeClass('p-hidden');
-		} else {
-			$('#p-sensor-'+curDevice+'-'+curName).addClass('p-hidden');
-			$('#p-sensor-'+curDevice+'-'+curName).show();
-		}
-		var $label = $('#label-'+curDevice+'-'+curName);
-		var $value = $('#value-'+curDevice+'-'+curName);
-		$label.text(json.sensor.display+': ');
-		$value.text($value.attr('value')+' '+json.sensor.unit);
-		
-		for (var i=0; i<angharad.device[curDevice].sensors.length; i++) {
-			if (angharad.device[curDevice].sensors[i].name == curName) {
-				angharad.device[curDevice].sensors[i] = json.sensor;
-			}
-		}
-	} else {
-		logMessage(logTypeError, $.t('Error updating sensor'));
-	}
+  $.post(url, {name: curName, device: curDevice, display: curDisplay, unit: curUnit, enabled: curEnabled, monitored: curMonitored, monitored_every: curMonitoredEvery, tags: curTags},
+  function(data) {
+    var response = parseResponse(data);
+    if (response.result) {
+      var json = response.json;
+      if (json.sensor.enabled) {
+        $('#p-sensor-'+curDevice+'-'+curName).removeClass('p-hidden');
+      } else {
+        $('#p-sensor-'+curDevice+'-'+curName).addClass('p-hidden');
+        $('#p-sensor-'+curDevice+'-'+curName).show();
+      }
+      var $label = $('#label-'+curDevice+'-'+curName);
+      var $value = $('#value-'+curDevice+'-'+curName);
+      $label.text(json.sensor.display+': ');
+      $value.text($value.attr('value')+' '+json.sensor.unit);
+      
+      for (var i=0; i<angharad.device[curDevice].sensors.length; i++) {
+        if (angharad.device[curDevice].sensors[i].name == curName) {
+          angharad.device[curDevice].sensors[i] = json.sensor;
+        }
+      }
+    } else {
+      logMessage(logTypeError, $.t('Error updating sensor'));
+    }
+  })
+  .fail(function() {
+    logMessage(logTypeError, $.t('Error updating sensor'));
+  });
 }
 
 /**
@@ -1462,21 +1477,25 @@ function addSwitchToGroup(device, switcher, tab, group, position) {
 		 type: curSwitcher.type, enabled: curSwitcher.enabled, monitored: curSwitcher.monitored, 
 		 monitored_every: curSwitcher.monitoredEvery, tags: curSwitcher.tags.join()};
 	var url = globalConfig.angharad_location+'/SETSWITCHDATA/';
-	var response = sendPostRequest(url, newElt);
-	
-	if (response.result) {
-		var json = response.json;
+  $.post(url, newElt, function(data) {
+    var response = parseResponse(data);
+    if (response.result) {
+      var json = response.json;
 
-		for (var i=0; i<angharad.device[device].switches.length; i++) {
-			if (angharad.device[device].switches[i].name == json.switch.name) {
-				angharad.device[device].switches[i].tags = json.switch.tags;
-        displaySwitchInGroup(device, angharad.device[device].switches[i], tab, group, position);
-				return true;
-			}
-		}
-	} else {
-		logMessage(logTypeError, $.t('Error updating switch'));
-	}
+      for (var i=0; i<angharad.device[device].switches.length; i++) {
+        if (angharad.device[device].switches[i].name == json.switch.name) {
+          angharad.device[device].switches[i].tags = json.switch.tags;
+          displaySwitchInGroup(device, angharad.device[device].switches[i], tab, group, position);
+          return true;
+        }
+      }
+    } else {
+      logMessage(logTypeError, $.t('Error updating switch'));
+    }
+  })
+  .fail(function() {
+    logMessage(logTypeError, $.t('Error updating switch'));
+  });
 }
 
 /**
@@ -1528,11 +1547,6 @@ function displaySwitchInGroup(device, curSwitch, tab, group, position) {
 	} else {
 		$('#admin-switch-'+curName).hide();
 	}
-	
-	tabContent[tab][(group==-1?device:group)].push({type:"switch", device:device, 
-													name:curSwitch.name,
-													group:group,
-													position:position});
 													
 	var $checkbox = $('#sw-'+curName);
 	$checkbox.change(function() {
@@ -1578,25 +1592,25 @@ function addDimmerToGroup(device, dimmer, tab, group, position) {
 	
 	curDimmer.tags.push(globalConfig.tags_prefix + '#' + curProfileId + '#' + tab + '#' + group + '#' + position);
 	var url = globalConfig.angharad_location+'/SETDIMMERDATA/';
-	var response = sendPostRequest(url,
-		{name: curDimmer.name, device: device, display: curDimmer.display, 
+  $.post(url, {name: curDimmer.name, device: device, display: curDimmer.display, 
 		 enabled: curDimmer.enabled, monitored: curDimmer.monitored, 
-		 monitored_every: curDimmer.monitoredEvery, tags: curDimmer.tags.join()}
-	);
-	
-	if (response.result) {
-		var json = response.json;
-    
-		
-		for (var i=0; i<angharad.device[device].dimmers.length; i++) {
-			if (angharad.device[device].dimmers[i].name == json.dimmer.name) {
-				angharad.device[device].dimmers[i].tags = json.dimmer.tags;
-        displayDimmerInGroup(device, angharad.device[device].dimmers[i], tab, group, position);
-			}
-		}
-	} else {
-		logMessage(logTypeError, $.t('Error updating dimmer'));
-	}
+		 monitored_every: curDimmer.monitoredEvery, tags: curDimmer.tags.join()}, function(data) {
+    var response = parseResponse(data);
+    if (response.result) {
+      var json = response.json;
+      for (var i=0; i<angharad.device[device].dimmers.length; i++) {
+        if (angharad.device[device].dimmers[i].name == json.dimmer.name) {
+          angharad.device[device].dimmers[i].tags = json.dimmer.tags;
+          displayDimmerInGroup(device, angharad.device[device].dimmers[i], tab, group, position);
+        }
+      }
+    } else {
+      logMessage(logTypeError, $.t('Error updating dimmer'));
+    }
+  })
+  .fail(function() {
+    logMessage(logTypeError, $.t('Error updating dimmer'));
+  });
 }
 
 /**
@@ -1636,11 +1650,6 @@ function displayDimmerInGroup(device, curDimmer, tab, group, position) {
 		$('#admin-dimmer-'+curName).hide();
 	}
 	
-	tabContent[tab][(group==-1?device:group)].push({type:"dimmer", device:device, 
-													name:curDimmer.name,
-													group:group,
-													position:position});
-
   initDimmer(curName, curDimmer);
 }
 
@@ -1675,24 +1684,26 @@ function addHeaterToGroup(device, heater, tab, group, position) {
 	
 	curHeater.tags.push(globalConfig.tags_prefix + '#' + curProfileId + '#' + tab + '#' + group + '#' + position);
 	var url = globalConfig.angharad_location+'/SETHEATERDATA/';
-	var response = sendPostRequest(url,
-		{name: curHeater.name, device: device, display: curHeater.display, 
+  $.post(url, {name: curHeater.name, device: device, display: curHeater.display, 
 		 unit: curHeater.unit, enabled: curHeater.enabled, monitored: curHeater.monitored, 
-		 monitored_every: curHeater.monitoredEvery, tags: curHeater.tags.join()}
-	);
-	
-	if (response.result) {
-		var json = response.json;
-		
-		for (var i=0; i<angharad.device[device].heaters.length; i++) {
-			if (angharad.device[device].heaters[i].name == json.heater.name) {
-				angharad.device[device].heaters[i].tags = json.heater.tags;
-        displayHeaterInGroup(device, angharad.device[device].heaters[i], tab, group, position);
-			}
-		}
-	} else {
-		logMessage(logTypeError, $.t('Error updating heater'));
-	}
+		 monitored_every: curHeater.monitoredEvery, tags: curHeater.tags.join()}, function(data) {
+    var response = parseResponse(data);
+    if (response.result) {
+      var json = response.json;
+      
+      for (var i=0; i<angharad.device[device].heaters.length; i++) {
+        if (angharad.device[device].heaters[i].name == json.heater.name) {
+          angharad.device[device].heaters[i].tags = json.heater.tags;
+          displayHeaterInGroup(device, angharad.device[device].heaters[i], tab, group, position);
+        }
+      }
+    } else {
+      logMessage(logTypeError, $.t('Error updating heater'));
+    }
+  })
+  .fail(function() {
+    logMessage(logTypeError, $.t('Error updating heater'));
+  });
 }
 
 /**
@@ -1734,8 +1745,6 @@ function displayHeaterInGroup(device, curHeater, tab, group, position) {
 		$('#admin-heater-'+curName).hide();
 	}
 	
-	tabContent[tab][(group==-1?device:group)].push({type:"heater", device:device, name:curHeater.name, group:group, position:position});
-	
 	initHeater(curName, curHeater);
 }
 
@@ -1770,25 +1779,27 @@ function addSensorToGroup(device, sensor, tab, group, position) {
 	
 	curSensor.tags.push(globalConfig.tags_prefix + '#' + curProfileId + '#' + tab + '#' + group + '#' + position);
 	var url = globalConfig.angharad_location+'/SETSENSORDATA/';
-	var response = sendPostRequest(url,
-		{name: curSensor.name, device: device, display: curSensor.display, 
+  $.post(url, {name: curSensor.name, device: device, display: curSensor.display, 
 		 unit: curSensor.unit, enabled: curSensor.enabled, monitored: curSensor.monitored, 
-		 monitored_every: curSensor.monitoredEvery, tags: curSensor.tags.join()}
-	);
-	
-	if (response.result) {
-		var json = response.json;
-    
-		for (var i=0; i<angharad.device[device].sensors.length; i++) {
-			if (angharad.device[device].sensors[i].name == json.sensor.name) {
-				// Update tags
-				angharad.device[device].sensors[i].tags = json.sensor.tags;
-        displaySensorInGroup(device, angharad.device[device].sensors[i], tab, group, position);
-			}
-		}
-	} else {
-		logMessage(logTypeError, $.t('Error updating sensor'));
-	}
+		 monitored_every: curSensor.monitoredEvery, tags: curSensor.tags.join()}, function(data) {
+    var response = parseResponse(data);
+    if (response.result) {
+      var json = response.json;
+      
+      for (var i=0; i<angharad.device[device].sensors.length; i++) {
+        if (angharad.device[device].sensors[i].name == json.sensor.name) {
+          // Update tags
+          angharad.device[device].sensors[i].tags = json.sensor.tags;
+          displaySensorInGroup(device, angharad.device[device].sensors[i], tab, group, position);
+        }
+      }
+    } else {
+      logMessage(logTypeError, $.t('Error updating sensor'));
+    }
+  })
+  .fail(function() {
+    logMessage(logTypeError, $.t('Error updating sensor'));
+  });
 }
 
 /**
@@ -1829,8 +1840,6 @@ function displaySensorInGroup(device, curSensor, tab, group, position) {
 	} else {
 		$('#admin-sensor-'+curName).hide();
 	}
-	
-	tabContent[tab][(group==-1?device:group)].push({type:"sensor", device:device, name:curSensor.name, group:group});
 	
 	if (!curSensor.enabled) {
 		$('#div-sensor'+curName).hide();
@@ -1874,13 +1883,17 @@ function addScriptToGroup(script, tab, group, position) {
 	}
 	
 	var url = globalConfig.angharad_location+'/SETSCRIPT/';
-	var response = sendPostRequest(url, postParams);
-	
-	if (response.result) {
-		displayScriptInGroup(curScript, tab, group, position);
-	} else {
-		logMessage(logTypeError, $.t('Error updating script'));
-	}
+  $.post(url, postParams, function(data) {
+    var response = parseResponse(data);
+    if (response.result) {
+      displayScriptInGroup(curScript, tab, group, position);
+    } else {
+      logMessage(logTypeError, $.t('Error updating script'));
+    }
+  })
+  .fail(function() {
+    logMessage(logTypeError, $.t('Error updating script'));
+  });
 }
 
 /**
@@ -1923,8 +1936,6 @@ function displayScriptInGroup(curScript, tab, group, position) {
 		}
 	}
 	
-	tabContent[tab][group].push({type:"script", id:curScript.id, name:curScript.name, group:group, position:position});
-  
   $('#script-'+curName).click(function() {
     runScript($(this).attr('data-an-script'));
 		return false;
@@ -1936,14 +1947,18 @@ function displayScriptInGroup(curScript, tab, group, position) {
  */
 function runScript(scriptId) {
   var url = globalConfig.angharad_location + '/RUNSCRIPT/' + scriptId;
-  var response = sendGetRequest(url);
-  
-  if (response.result) {
-    logMessage(logTypeInfo, $.t('Script executed succesfully: ') + angharad.scripts[scriptId].name);
-  } else {
+  $.get( url, function(data) {
+    var response = parseResponse(data);
+    if (response.result) {
+      logMessage(logTypeInfo, $.t('Script executed succesfully: ') + angharad.scripts[scriptId].name);
+    } else {
+      logMessage(logTypeError, $.t('Error running script: ') + angharad.scripts[scriptId].name);
+    }
+    refreshAllDevices(false);
+  })
+  .fail(function() {
     logMessage(logTypeError, $.t('Error running script: ') + angharad.scripts[scriptId].name);
-  }
-  refreshAllDevices(false);
+  });
 }
 
 /**
@@ -1961,22 +1976,26 @@ function displayScheduleInGroup(curSchedule, tab, group, position) {
   $('#schedule-'+curSchedule.id).change(function() {
     var value = $(this).prop('checked')?'1':'0';
     var url = globalConfig.angharad_location + '/ENABLESCHEDULE/' + $(this).attr('data-an-schedule') + '/' + value;
-    var response = sendGetRequest(url);
-    
-    if (response.result) {
-      angharad.schedules[$(this).attr('data-an-schedule')] = response.json.schedule;
-      updateScheduleDisplay(angharad.schedules[$(this).attr('data-an-schedule')]);
-    } else {
+    $.get( url, function(data) {
+      var response = parseResponse(data);
+      if (response.result) {
+        angharad.schedules[$(this).attr('data-an-schedule')] = response.json.schedule;
+        updateScheduleDisplay(angharad.schedules[$(this).attr('data-an-schedule')]);
+      } else {
+        $(this).prop('checked', !$(this).prop('checked'));
+        logMessage(logTypeError, $.t('Error, unable to edit schedule'));
+      }
+    })
+    .fail(function() {
       $(this).prop('checked', !$(this).prop('checked'));
       logMessage(logTypeError, $.t('Error, unable to edit schedule'));
-    }
+    });
   });
 	
 	if (getCurrentProfile().options.adminMode) {
 		$('#div-schedule-'+curSchedule.id).find('.admin-button').show();
 	}
 	
-	tabContent[tab][group].push({type:"schedule", name:curSchedule.id, group:group});
 }
 
 /**
@@ -1995,7 +2014,6 @@ function displayActionInGroup(curAction, tab, group, position) {
 		$('#div-action-'+curAction.id).find('.admin-button').show();
 	}
 	
-	tabContent[tab][group].push({type:"action", name:curAction.id, group:group});
 }
 
 /**
@@ -2004,7 +2022,6 @@ function displayActionInGroup(curAction, tab, group, position) {
 function updateScheduleDisplay(curSchedule) {
   var $check = $('#schedule-'+curSchedule.id);
   var $label = $('#message-schedule-'+curSchedule.id);
-	var curScript = angharad.scripts[curSchedule.script];
 	
   $check.prop('checked', curSchedule.enabled);
   if (curSchedule.enabled) {
@@ -2012,7 +2029,6 @@ function updateScheduleDisplay(curSchedule) {
   } else {
     $label.text(curSchedule.name + ', ' + $.t('Disabled'));
   }
-	updateScriptHoverDisplay(curScript);
 }
 
 /**
@@ -2093,28 +2109,24 @@ function removeSwitchFromGroup(device, switcher, tab, group) {
 		}
 		
 		var url = globalConfig.angharad_location+'/SETSWITCHDATA/';
-		var response = sendPostRequest(url,
-			{name: curSwitcher.name, device: device, display: curSwitcher.display, 
+    $.post(url, {name: curSwitcher.name, device: device, display: curSwitcher.display, 
 			 type: curSwitcher.type, enabled: curSwitcher.enabled, monitored: curSwitcher.monitored, 
-			 monitored_every: curSwitcher.monitoredEvery, tags: curSwitcher.tags.join()}
-		);
-		
-		if (response.result) {
-			var json = response.json;
-			$divSwitch = $('#div-switch-' + tab + '-' + group + '-' + device + '-' + curSwitcher.name);
-			$divSwitch.fadeOut('fast', function() {
-				$divSwitch.remove();
-			});
-			curSwitcher.tags = json.switch.tags;
-			
-			for (key in tabContent[tab][group]) {
-				if (tabContent[tab][group][key].type == "switcher" && tabContent[tab][group][key].device == device && tabContent[tab][group][key].name == switcher) {
-					tabContent[tab][group].splice(key, 1);
-				}
-			}
-		} else {
-			logMessage(logTypeError, $.t('Error updating switch'));
-		}
+			 monitored_every: curSwitcher.monitoredEvery, tags: curSwitcher.tags.join()}, function(data) {
+      var response = parseResponse(data);
+      if (response.result) {
+        var json = response.json;
+        $divSwitch = $('#div-switch-' + tab + '-' + group + '-' + device + '-' + curSwitcher.name);
+        $divSwitch.fadeOut('fast', function() {
+          $divSwitch.remove();
+        });
+        curSwitcher.tags = json.switch.tags;
+      } else {
+        logMessage(logTypeError, $.t('Error updating switch'));
+      }
+    })
+    .fail(function() {
+      logMessage(logTypeError, $.t('Error updating switch'));
+    });
 	}
 }
 
@@ -2161,27 +2173,24 @@ function removeDimmerFromGroup(device, dimmer, tab, group) {
 		}
 		
 		var url = globalConfig.angharad_location+'/SETDIMMERDATA/';
-		var response = sendPostRequest(url,
-			{name: curDimmer.name, device: device, display: curDimmer.display, 
+    $.post(url, {name: curDimmer.name, device: device, display: curDimmer.display, 
 			 type: curDimmer.type, enabled: curDimmer.enabled, monitored: curDimmer.monitored, 
-			 monitored_every: curDimmer.monitoredEvery, tags: curDimmer.tags.join()}
-		);
-		
-		if(response.result) {
-			var json = response.json;
-			$div = $('#div-dimmer-' + tab + '-' + group + '-' + device + '-' + curDimmer.name);
-			$div.fadeOut('fast', function() {
-				$div.remove();
-			});
-			curDimmer.tags = json.dimmer.tags;
-			for (key in tabContent[tab][group]) {
-				if (tabContent[tab][group][key].type == "dimmer" && tabContent[tab][group][key].device == device && tabContent[tab][group][key].name == dimmer) {
-					tabContent[tab][group].splice(key, 1);
-				}
-			}
-		} else {
-			logMessage(logTypeError, $.t('Error updating dimmer'));
-		}
+			 monitored_every: curDimmer.monitoredEvery, tags: curDimmer.tags.join()}, function(data) {
+      var response = parseResponse(data);
+      if (response.result) {
+        var json = response.json;
+        $div = $('#div-dimmer-' + tab + '-' + group + '-' + device + '-' + curDimmer.name);
+        $div.fadeOut('fast', function() {
+          $div.remove();
+        });
+        curDimmer.tags = json.dimmer.tags;
+      } else {
+        logMessage(logTypeError, $.t('Error updating dimmer'));
+      }
+    })
+    .fail(function() {
+      logMessage(logTypeError, $.t('Error updating dimmer'));
+    });
 	}
 }
 
@@ -2228,27 +2237,24 @@ function removeHeaterFromGroup(device, heater, tab, group) {
 		}
 		
 		var url = globalConfig.angharad_location+'/SETHEATERDATA/';
-		var response = sendPostRequest(url,
-			{name: curHeater.name, device: device, display: curHeater.display, 
+    $.post(url, {name: curHeater.name, device: device, display: curHeater.display, 
 			 type: curHeater.type, enabled: curHeater.enabled, monitored: curHeater.monitored, 
-			 monitored_every: curHeater.monitoredEvery, tags: curHeater.tags.join()}
-		);
-		
-		if (response.result) {
-			var json = response.json;
-			$div = $('#div-heater-' + tab + '-' + group + '-' + device + '-' + curHeater.name);
-			$div.fadeOut('fast', function() {
-				$div.remove();
-			});
-			curHeater.tags = json.heater.tags;
-			for (key in tabContent[tab][group]) {
-				if (tabContent[tab][group][key].type == "heater" && tabContent[tab][group][key].device == device && tabContent[tab][group][key].name == heater) {
-					tabContent[tab][group].splice(key, 1);
-				}
-			}
-		} else {
-			logMessage(logTypeError, $.t('Error updating heater'));
-		}
+			 monitored_every: curHeater.monitoredEvery, tags: curHeater.tags.join()}, function(data) {
+      var response = parseResponse(data);
+      if (response.result) {
+        var json = response.json;
+        $div = $('#div-heater-' + tab + '-' + group + '-' + device + '-' + curHeater.name);
+        $div.fadeOut('fast', function() {
+          $div.remove();
+        });
+        curHeater.tags = json.heater.tags;
+      } else {
+        logMessage(logTypeError, $.t('Error updating heater'));
+      }
+    })
+    .fail(function() {
+      logMessage(logTypeError, $.t('Error updating heater'));
+    });
 	}
 }
 
@@ -2296,27 +2302,24 @@ function removeSensorFromGroup(device, sensor, tab, group) {
 		}
 		
 		var url = globalConfig.angharad_location+'/SETSENSORDATA/';
-		var response = sendPostRequest(url,
-			{name: curSensor.name, device: device, display: curSensor.display, 
+    $.post(url, {name: curSensor.name, device: device, display: curSensor.display, 
 			 type: curSensor.type, enabled: curSensor.enabled, monitored: curSensor.monitored, 
-			 monitored_every: curSensor.monitoredEvery, tags: curSensor.tags.join()}
-		);
-		
-		if (response.result) {
-			var json = response.json;
-			$div = $('#div-sensor-' + tab + '-' + group + '-' + device + '-' + curSensor.name);
-			$div.fadeOut('fast', function() {
-				$div.remove();
-			});
-			curSensor.tags = json.sensor.tags;
-			for (key in tabContent[tab][group]) {
-				if (tabContent[tab][group][key].type == "sensor" && tabContent[tab][group][key].device == device && tabContent[tab][group][key].name == sensor) {
-					tabContent[tab][group].splice(key, 1);
-				}
-			}
-		} else {
-			logMessage(logTypeError, $.t('Error updating sensor'));
-		}
+			 monitored_every: curSensor.monitoredEvery, tags: curSensor.tags.join()}, function(data) {
+      var response = parseResponse(data);
+      if (response.result) {
+        var json = response.json;
+        $div = $('#div-sensor-' + tab + '-' + group + '-' + device + '-' + curSensor.name);
+        $div.fadeOut('fast', function() {
+          $div.remove();
+        });
+        curSensor.tags = json.sensor.tags;
+      } else {
+        logMessage(logTypeError, $.t('Error updating sensor'));
+      }
+    })
+    .fail(function() {
+      logMessage(logTypeError, $.t('Error updating sensor'));
+    });
 	}
 }
 
@@ -2359,45 +2362,21 @@ function removeScriptFromGroup(script, tab, group) {
 		}
 		
 		var url = globalConfig.angharad_location+'/SETSCRIPT/';
-		var response = sendPostRequest(url, postParams);
-		
-		if (response.result) {
-			var $div = $('#div-script-'+tab+'-'+group+'-'+script);
-			$div.fadeOut('fast', function() {
-				$div.remove();
-			});
-			curScript.tags = response.json.script.tags;
-			for (key in tabContent[tab][group]) {
-				if (tabContent[tab][group][key].type == "script" && tabContent[tab][group][key].id == curScript.id) {
-					tabContent[tab][group].splice(key, 1);
-				}
-			}
-		} else {
-			logMessage(logTypeError, $.t('Error while updating script'));
-		}
-	}
-}
-
-/**
- * Get the element at selected position in the selected group
- * If position is -1, then return the last element in the group
- * If there is no element at the specified position, return false
- */
-function getElementAtPosition(tab, group, position) {
-	if (position == -1) {
-		if (tabContent[tab][group].length > 0) {
-			return tabContent[tab][group][tabContent[tab][group].length - 1];
-		} else {
-			return false;
-		}
-	} else if (position >= 0) {
-		if (tabContent[tab][group][position] == undefined) {
-			return false;
-		} else {
-			return tabContent[tab][group][position];
-		}
-	} else {
-		return false;
+    $.post(url, postParams, function(data) {
+      var response = parseResponse(data);
+      if (response.result) {
+        var $div = $('#div-script-'+tab+'-'+group+'-'+script);
+        $div.fadeOut('fast', function() {
+          $div.remove();
+        });
+        curScript.tags = response.json.script.tags;
+      } else {
+        logMessage(logTypeError, $.t('Error while updating script'));
+      }
+    })
+    .fail(function() {
+      logMessage(logTypeError, $.t('Error while updating script'));
+    });
 	}
 }
 
@@ -2545,28 +2524,33 @@ function okScript($dialog) {
     return false;
   }
 	
-	var response = sendPostRequest(url, postParams);
-	
-	if (response.result) {
-		var script = response.json.script;
-		script.actions = [];
-		var i=0;
-		$dialog.find('#dialog-script-actions option').each(function () {
-			script.actions[i] = {id:$(this).val(), name:$(this).text(), enabled:$(this).attr('data-an-enabled')=='true', rank:i+1};
-			i++;
-		});
-		angharad.scripts[script.id] = script;
-		if (isAdd) {
-			// Add new script in the scripts tab
-			displayScriptInGroup(script, tabScriptsSchedulesId, '-1', -1);
-			updateScriptHoverDisplay(script);
+  $.post(url, postParams, function(data) {
+    var response = parseResponse(data);
+    if (response.result) {
+      var script = response.json.script;
+      script.actions = [];
+      var i=0;
+      $dialog.find('#dialog-script-actions option').each(function () {
+        script.actions[i] = {id:$(this).val(), name:$(this).text(), enabled:$(this).attr('data-an-enabled')=='true', rank:i+1};
+        i++;
+      });
+      angharad.scripts[script.id] = script;
+      if (isAdd) {
+        // Add new script in the scripts tab
+        displayScriptInGroup(script, tabScriptsSchedulesId, '-1', -1);
+        updateScriptHoverDisplay(script);
+      } else {
+        // Edit all scripts in all tabs
+        updateScriptHoverDisplay(script);
+      }
     } else {
-			// Edit all scripts in all tabs
-			updateScriptHoverDisplay(script);
-		}
-	} else {
-		logMessage(logTypeError, $.t('Error, unable to save script'));
-	}
+      logMessage(logTypeError, $.t('Error, unable to save script'));;
+    }
+  })
+  .fail(function() {
+    logMessage(logTypeError, $.t('Error, unable to save script'));
+  });
+  
 	$dialog.dialog( 'close' ); 
 }
 
@@ -2578,17 +2562,21 @@ function deleteScript($script) {
 	var url = globalConfig.angharad_location + '/DELETESCRIPT/' + scriptId;
 
 	if (confirm($.t('Are you sure you want to delete this task ?'))) {
-		var response = sendGetRequest(url);
-		
-		if (response.result) {
-			$('.group-script-'+scriptId).each(function() {
-				$(this).slideUp();
-				$(this).remove();
-				angharad.scripts.splice(scriptId, 1);
-			});
-		} else {
-			logMessage(logTypeError, $.t('Error, unable to delete script'));
-		}
+    $.get( url, function(data) {
+      var response = parseResponse(data);
+      if (response.result) {
+        $('.group-script-'+scriptId).each(function() {
+          $(this).slideUp();
+          $(this).remove();
+          angharad.scripts.splice(scriptId, 1);
+        });
+      } else {
+        logMessage(logTypeError, $.t('Error, unable to delete script'));
+      }
+    })
+    .fail(function() {
+      logMessage(logTypeError, $.t('Error, unable to delete script'));
+    });
 	}
 }
 
@@ -2695,7 +2683,7 @@ function initDialogSchedule($dialog, scheduleId) {
 		$('#dialog-schedule-name').val(curSchedule.name);
 		$('#dialog-schedule-enabled').prop('checked', curSchedule.enabled);
 		$('#dialog-schedule-remove-after-done').prop('checked', curSchedule.remove_after_done);
-		$('#dialog-schedule-script option[value="'+curSchedule.script.id+'"]').prop('selected', true);
+		$('#dialog-schedule-script option[value="'+curSchedule.script+'"]').prop('selected', true);
 		$('#dialog-schedule-device option[value="'+curSchedule.device+'"]').prop('selected', true);
 		curDate.setUTCSeconds(curSchedule.next_time);
 		setDateDisplay(curDate);
@@ -2793,27 +2781,31 @@ function okSchedule($dialog) {
 		postParams.repeat_schedule = -1;
 	}
 	
-	var response = sendPostRequest(url, postParams);
-	
-	if (response.result) {
-		var oldScript = '';
-		if (!isAdd) {
-			oldScript = angharad.schedules[response.json.schedule.id].script;
-		}
-		angharad.schedules[response.json.schedule.id] = response.json.schedule;
-		if (isAdd) {
-			displayScheduleInGroup(angharad.schedules[response.json.schedule.id], tabScriptsSchedulesId, '-1', -1);
-		} else {
-			updateScheduleDisplay(angharad.schedules[response.json.schedule.id]);
-			if (oldScript.id != angharad.schedules[response.json.schedule.id].script) {
-				updateScriptHoverDisplay(oldScript);
-			}
-			updateScriptHoverDisplay(angharad.scripts[response.json.schedule.script]);
-		}
-	} else {
-		logMessage(logTypeError, $.t('Error while saving scheduled task'));
-	}
-	
+  $.post(url, postParams, function(data) {
+    var response = parseResponse(data);
+    if (response.result) {
+      var oldScript = '';
+      if (!isAdd) {
+        oldScript = angharad.schedules[response.json.schedule.id].script;
+      }
+      angharad.schedules[response.json.schedule.id] = response.json.schedule;
+      if (isAdd) {
+        displayScheduleInGroup(angharad.schedules[response.json.schedule.id], tabScriptsSchedulesId, '-1', -1);
+      } else {
+        updateScheduleDisplay(angharad.schedules[response.json.schedule.id]);
+        if (oldScript.id != angharad.schedules[response.json.schedule.id].script) {
+          updateScriptHoverDisplay(oldScript);
+        }
+        updateScriptHoverDisplay(angharad.scripts[response.json.schedule.script]);
+      }
+    } else {
+      logMessage(logTypeError, $.t('Error while saving scheduled task'));
+    }
+  })
+  .fail(function() {
+    logMessage(logTypeError, $.t('Error while saving scheduled task'));
+  });
+  
 	$dialog.dialog( 'close' );
 }
 
@@ -2824,18 +2816,22 @@ function deleteSchedule(scheduleId) {
 	var url = globalConfig.angharad_location + '/DELETESCHEDULE/'+scheduleId;
 	
 	if (confirm($.t('Are you sure you want to delete this scheduled task ?'))) {
-		var response = sendGetRequest(url);
-		
-		if (response.result) {
-			var script = angharad.schedules[scheduleId].script;
-			angharad.schedules.splice(scheduleId, 1);
-			updateScriptHoverDisplay(script);
-			$('#div-schedule-'+scheduleId).slideUp();
-			$('#div-schedule-'+scheduleId).remove();
-			logMessage(logTypeInfo, $.t('Scheduled task deleted succesfully'));
-		} else {
-			logMessage(logTypeError, $.t('Error deleting scheduled task'));
-		}
+    $.get( url, function(data) {
+      var response = parseResponse(data);
+      if (response.result) {
+        var script = angharad.schedules[scheduleId].script;
+        angharad.schedules.splice(scheduleId, 1);
+        updateScriptHoverDisplay(script);
+        $('#div-schedule-'+scheduleId).slideUp();
+        $('#div-schedule-'+scheduleId).remove();
+        logMessage(logTypeInfo, $.t('Scheduled task deleted succesfully'));
+      } else {
+        logMessage(logTypeError, $.t('Error deleting scheduled task'));
+      }
+    })
+    .fail(function() {
+      logMessage(logTypeError, $.t('Error deleting scheduled task'));
+    });
 	}
 }
 
@@ -2896,7 +2892,15 @@ function initActionDialog($dialog, $action) {
     var htmlOption = '<option value="'+angharad.scripts[key].id+'">'+angharad.scripts[key].name+'</option>';
     $scriptsList.append(htmlOption);
 	}
-	
+  
+	$devicesList.empty();
+  for (var key in angharad.devices) {
+    if (angharad.devices[key].enabled) {
+      var htmlOption = '<option value="'+angharad.devices[key].name+'">'+angharad.devices[key].display+'</option>';
+      $devicesList.append(htmlOption);
+    }
+  }
+  	
 	$typeList.change(function () {
 		switch ($(this).val().toString()) {
 			case "0":
@@ -3138,21 +3142,25 @@ function okAction($dialog) {
 		params.params = $paramsValue.val();
 	}
 	
-	var response = sendPostRequest(url, params);
-	
-	if (response.result) {
-		var action = response.json.action;
-		angharad.actions[action.id] = action;
-		
-		if (isAdd) {
-			displayActionInGroup(action, tabScriptsSchedulesId, '-1', -1);
-		} else {
-			$('#label-action-'+action.id).text(action.name);
-		}
-	} else {
-		logMessage(logTypeError, $.t('Error while saving action'));
-	}
-	
+  $.post(url, params, function(data) {
+    var response = parseResponse(data);
+    if (response.result) {
+      var action = response.json.action;
+      angharad.actions[action.id] = action;
+      
+      if (isAdd) {
+        displayActionInGroup(action, tabScriptsSchedulesId, '-1', -1);
+      } else {
+        $('#label-action-'+action.id).text(action.name);
+      }
+    } else {
+      logMessage(logTypeError, $.t('Error while saving action'));
+    }
+  })
+  .fail(function() {
+    logMessage(logTypeError, $.t('Error while saving action'));
+  });
+  
 	$dialog.dialog( 'close' );
 }
 
@@ -3164,16 +3172,20 @@ function deleteAction($action) {
 	var url = globalConfig.angharad_location + '/DELETEACTION/'+actionId;
 	
 	if (confirm($.t('Are you sure you want to delete this action ?'))) {
-		var response = sendGetRequest(url);
-		
-		if (response.result) {
-			angharad.actions.splice(actionId, 1);
-			$('#div-action-'+actionId).slideUp();
-			$('#div-action-'+actionId).remove();
-			logMessage(logTypeInfo, $.t('Action removed succesfully'));
-		} else {
-			logMessage(logTypeError, $.t('Error removing action'));
-		}
+    $.get( url, function(data) {
+      var response = parseResponse(data);
+      if (response.result) {
+        angharad.actions.splice(actionId, 1);
+        $('#div-action-'+actionId).slideUp();
+        $('#div-action-'+actionId).remove();
+        logMessage(logTypeInfo, $.t('Action removed succesfully'));
+      } else {
+        logMessage(logTypeError, $.t('Error removing action'));
+      }
+    })
+    .fail(function() {
+      logMessage(logTypeError, $.t('Error removing action'));
+    });
 	}
 }
 
@@ -3184,29 +3196,44 @@ function refreshAngharad(force) {
 	if (angharad.ready) {
 		refreshAllDevices(force);
     
-		url = globalConfig.angharad_location + '/ACTIONS/';
-		var response = sendGetRequest(url);
-		if (response.result) {
-			refreshActions(response.json.actions);
-		} else {
-			logMessage(logTypeError, $.t('Unable to refresh information for actions'));
-		}
+		var url = globalConfig.angharad_location + '/ACTIONS/';
+    $.get( url, function(data) {
+      var response = parseResponse(data);
+      if (response.result) {
+        refreshActions(response.json.actions);
+      } else {
+        logMessage(logTypeError, $.t('Unable to refresh information for actions'));
+      }
+    })
+    .fail(function() {
+      logMessage(logTypeError, $.t('Unable to refresh information for actions'));
+    });
 		
-		url = globalConfig.angharad_location + '/SCRIPTS/';
-		var response = sendGetRequest(url);
-		if (response.result) {
-			refreshScripts(response.json.scripts);
-		} else {
-			logMessage(logTypeError, $.t('Unable to refresh information for scripts'));
-		}
+		/*url = globalConfig.angharad_location + '/SCRIPTS/';
+    $.get( url, function(data) {
+      var response = parseResponse(data);
+      if (response.result) {
+        refreshScripts(response.json.scripts);
+      } else {
+        logMessage(logTypeError, $.t('Unable to refresh information for scripts'));
+      }
+    })
+    .fail(function() {
+      logMessage(logTypeError, $.t('Unable to refresh information for scripts'));
+    });*/
 		
 		url = globalConfig.angharad_location + '/SCHEDULES/';
-		var response = sendGetRequest(url);
-		if (response.result) {
-			refreshSchedules(response.json.schedules);
-		} else {
-			logMessage(logTypeError, $.t('Unable to refresh information for schedules'));
-		}
+    $.get( url, function(data) {
+      var response = parseResponse(data);
+      if (response.result) {
+        refreshSchedules(response.json.schedules);
+      } else {
+        logMessage(logTypeError, $.t('Unable to refresh information for schedules'));
+      }
+    })
+    .fail(function() {
+      logMessage(logTypeError, $.t('Unable to refresh information for schedules'));
+    });
 	}
 }
 
@@ -3223,13 +3250,18 @@ function refreshAllDevices(force) {
       url += '/OVERVIEW/';
     }
 		for (device in angharad.devices) {
-			var response = sendGetRequest(url + device);
-			if (response.result) {
-        angharad.device[response.json.device.name] = response.json.device;
-				refreshDevice(response.json.device.name);
-			} else {
-				logMessage(logTypeError, $.t('Unable to refresh information for device ')+device);
-			}
+      $.get( url + device, function(data) {
+        var response = parseResponse(data);
+        if (response.result) {
+          angharad.device[response.json.device.name] = response.json.device;
+          refreshDevice(response.json.device.name);
+        } else {
+          logMessage(logTypeError, $.t('Unable to refresh information for device ')+device);
+        }
+      })
+      .fail(function() {
+        logMessage(logTypeError, $.t('Unable to refresh information for device ')+device);
+      });
 		}
   }
 }
@@ -3323,17 +3355,7 @@ function refreshScripts(scripts) {
     var curScript = scripts[new_sc];
     for (tag in curScript.tags) {
       if (curScript.tags[tag].indexOf(globalConfig.tags_prefix + '#' + getCurrentProfile().id + '#') == 0) {
-        if (tabContent[curScript.tags[tag].split('#')[2]] != undefined && tabContent[curScript.tags[tag].split('#')[2]][curScript.tags[tag].split('#')[3]] != undefined) {
-          var inGroup = false;
-          for (elt in tabContent[curScript.tags[tag].split('#')[2]][curScript.tags[tag].split('#')[3]]) {
-            if (tabContent[curScript.tags[tag].split('#')[2]][curScript.tags[tag].split('#')[3]][elt].type == 'script' && tabContent[curScript.tags[tag].split('#')[2]][curScript.tags[tag].split('#')[3]][elt].id == curScript.id) {
-              inGroup = true;
-            }
-          }
-          if (!inGroup) {
-            displayScriptInGroup(curScript, curScript.tags[tag].split('#')[2], curScript.tags[tag].split('#')[3], parseInt(curScript.tags[tag].split('#')[4]));
-          }
-        }
+        displayScriptInGroup(curScript, curScript.tags[tag].split('#')[2], curScript.tags[tag].split('#')[3], parseInt(curScript.tags[tag].split('#')[4]));
       }
     }
     if (angharad.scripts[scripts[new_sc].id] == undefined) {
