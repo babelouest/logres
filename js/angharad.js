@@ -64,7 +64,7 @@ var scriptsContainerTemplate = '<div id="div-container-script">\n\
 	<div id="fold-scripts" class="new-group-div"><label id="container-script-label"><img src="contextMenu/images/page_white_add.png"/> %DISPLAY%</label></div>\n\
 	<div id="container-scripts" class="block">\n\
 		<div id="new-script" class="div-hidden new-group-div">\n\
-			<label id="new-script-title" class="title-display new-group" data-i18n><img src="contextMenu/images/page_white_add.png"/> Add a script</label>\n\
+			<label id="new-script-title" class="title-display new-group"><img src="contextMenu/images/page_white_add.png"/> <span id="span-new-script-title" data-i18n>Add a script</span></label>\n\
 		</div>\n\
 		<div id="container-script" data-an-nb-elements="0"><div>\n\
 	</div>\n\
@@ -527,7 +527,7 @@ function initHeater(curName, curHeater) {
         $.get( url, function(data) {
           var response = parseResponse(data);
           if (response.result) {
-            updateAllHeaters(device, heaterId, curHeater.set, self.slider( 'value' ), curHeater.unit);
+            updateAllHeaters(device, heaterId, $('#he-'+self.attr('data-an-name')).prop('checked'), self.slider( 'value' ), curHeater.unit);
           } else {
             var $label = $('#label-heater-'+curName);
             $label.text($label.attr('data-an-label') + ' - ' + $.t('Error setting heater'));
@@ -806,7 +806,7 @@ function updateMonitorDisplay(name) {
         if (angharad.device[element.device].switches[elt].name == element.name) {
           $('#div-monitor-series-'+name).append('<span id="span-tag-'+element.device+'-'+element.name+'" class="tag label label-info">'+
                                                 angharad.device[element.device].switches[elt].display+
-                                                '<span id="span-tag-remove-'+element.device+'-'+element.name+'" data-role="remove"></span></span>');
+                                                '<span id="span-tag-remove-'+element.device+'-'+element.name+'" data-an-type="'+element.type+'" data-an-device="'+element.device+'" data-an-name="'+element.name+'" data-role="remove"></span></span>');
         }
       }
     } else if (element.type == 'dimmer') {
@@ -814,7 +814,7 @@ function updateMonitorDisplay(name) {
         if (angharad.device[element.device].dimmers[elt].name == element.name) {
           $('#div-monitor-series-'+name).append('<span id="span-tag-'+element.device+'-'+element.name+'" class="tag label label-info">'+
                                                 angharad.device[element.device].dimmers[elt].display+
-                                                '<span id="span-tag-remove-'+element.device+'-'+element.name+'" data-role="remove"></span></span>');
+                                                '<span id="span-tag-remove-'+element.device+'-'+element.name+'" data-an-type="'+element.type+'" data-an-device="'+element.device+'" data-an-name="'+element.name+'" data-role="remove"></span></span>');
         }
       }
     } else if (element.type == 'heater') {
@@ -822,7 +822,7 @@ function updateMonitorDisplay(name) {
         if (angharad.device[element.device].heaters[elt].name == element.name) {
           $('#div-monitor-series-'+name).append('<span id="span-tag-'+element.device+'-'+element.name+'" class="tag label label-info">'+
                                                 angharad.device[element.device].heaters[elt].display+
-                                                '<span id="span-tag-remove-'+element.device+'-'+element.name+'" data-role="remove"></span></span>');
+                                                '<span id="span-tag-remove-'+element.device+'-'+element.name+'" data-an-type="'+element.type+'" data-an-device="'+element.device+'" data-an-name="'+element.name+'" data-role="remove"></span></span>');
         }
       }
     } else if (element.type == 'sensor') {
@@ -847,9 +847,16 @@ function updateMonitorDisplay(name) {
                 element.name == $(this).attr('data-an-name')) {
               // Remove this element from the profile, then reload the chart
               monitor.elements.splice(elt, 1);
-              profile.options.monitors[mon] = monitor;
-              updateProfile(profile);
-              updateMonitorDisplay(name);
+              if (monitor.elements.length == 0) {
+                // No more element in this monitor, removing it
+                $('#monitor-'+monitor.name).remove();
+                profile.options.monitors.splice(mon, 1);
+                updateProfile(profile);
+              } else {
+                profile.options.monitors[mon] = monitor;
+                updateProfile(profile);
+                updateMonitorDisplay(name);
+              }
             }
           }
         }
@@ -887,10 +894,15 @@ function updateMonitorDisplay(name) {
  * Show the monitor
  */
 function showMonitor(name, plotMatrices, colors) {
-  console.log(name, plotMatrices, colors);
   if (plotMatrices.length > 0) {
     $('#div-monitor-chart-'+name).empty().fadeIn(function() {
       var plot = $.jqplot('div-monitor-chart-'+name, plotMatrices, {
+          seriesDefaults: {
+            showMarker: false,
+            rendererOptions: {
+              smooth: true
+            }
+          },
           axes:{
               xaxis:{
                   renderer:$.jqplot.DateAxisRenderer,
@@ -907,13 +919,7 @@ function showMonitor(name, plotMatrices, colors) {
           cursor:{
               show: false
           },
-          series:[{showMarker:false}],
           seriesColors:colors,
-          seriesDefaults: {
-              rendererOptions: {
-                  smooth: true
-              }
-          },
       });
     });
   } else {
@@ -1242,6 +1248,7 @@ function editHeater($heaterAdminButton) {
 			$dialog.find('#dialog-heater-name').text(curHeater.name);
 			$dialog.find('#dialog-heater-display').val(curHeater.display);
 			$dialog.find('#dialog-heater-unit').val(curHeater.unit);
+			$dialog.find('#dialog-heater-value-type').find('option[value="'+(curHeater.value_type)+'"]').prop('selected', true);
 			$dialog.find('#dialog-heater-enabled').prop('checked', curHeater.enabled);
 			$dialog.find('#dialog-heater-monitored').prop('checked', curHeater.monitored);
 			$dialog.find('#dialog-heater-monitored-every').find('option[value="'+(curHeater.monitored_every==0?1:curHeater.monitored_every)+'"]').prop('selected', true);
@@ -1262,12 +1269,13 @@ function editHeater($heaterAdminButton) {
 					var curName=curHeater.name;
 					var curDisplay=$(this).find('#dialog-heater-display').val();
 					var curUnit=$(this).find('#dialog-heater-unit').val();
+          var curValueType=$(this).find('#dialog-heater-value-type').val();
 					var curEnabled=$(this).find('#dialog-heater-enabled').prop('checked')?'true':'false';
 					var curMonitored=$(this).find('#dialog-heater-monitored').prop('checked')?'true':'false';
 					var curMonitoredEvery=$(this).find('#dialog-heater-monitored-every').val();
           var curTags=curHeater.tags.join();
 					
-					okDialogHeater($heaterAdminButton.attr('data-an-device'), curName, curDisplay, curUnit, curEnabled, curMonitored, curMonitoredEvery, curTags);
+					okDialogHeater($heaterAdminButton.attr('data-an-device'), curName, curDisplay, curUnit, curValueType, curEnabled, curMonitored, curMonitoredEvery, curTags);
 					
 					$( this ).dialog( 'close' );
 				}
@@ -1284,12 +1292,13 @@ function editHeater($heaterAdminButton) {
 						var curName=curHeater.name;
 						var curDisplay=$(this).find('#dialog-heater-display').val();
 						var curUnit=$(this).find('#dialog-heater-unit').val();
+            var curValueType=$(this).find('#dialog-heater-value-type').val();
 						var curEnabled=$(this).find('#dialog-heater-enabled').prop('checked')?'true':'false';
             var curMonitored=$(this).find('#dialog-heater-monitored').prop('checked')?'true':'false';
             var curMonitoredEvery=$(this).find('#dialog-heater-monitored-every').val();
             var curTags=curHeater.tags.join();
             
-						okDialogHeater($heaterAdminButton.attr('data-an-device'), curName, curDisplay, curUnit, curEnabled, curMonitored, curMonitoredEvery, curTags);
+						okDialogHeater($heaterAdminButton.attr('data-an-device'), curName, curDisplay, curUnit, curValueType, curEnabled, curMonitored, curMonitoredEvery, curTags);
 						$( this ).dialog( 'close' );
 					}
 				}]
@@ -1303,9 +1312,9 @@ function editHeater($heaterAdminButton) {
 /**
  * Save heater data
  */
-function okDialogHeater(curDevice, curName, curDisplay, curUnit, curEnabled, curMonitored, curMonitoredEvery, curTags) {
+function okDialogHeater(curDevice, curName, curDisplay, curUnit, curValueType, curEnabled, curMonitored, curMonitoredEvery, curTags) {
 	var url = globalConfig.angharad_location+'/SETHEATERDATA/';
-  $.post(url, {name: curName, device: curDevice, display: curDisplay, unit: curUnit, enabled: curEnabled, monitored: curMonitored, monitored_every: curMonitoredEvery, tags: curTags}, 
+  $.post(url, {name: curName, device: curDevice, display: curDisplay, unit: curUnit, value_type:curValueType, enabled: curEnabled, monitored: curMonitored, monitored_every: curMonitoredEvery, tags: curTags}, 
   function(data) {
     var response = parseResponse(data);
     if (response.result) {
@@ -1349,6 +1358,7 @@ function editSensor($sensorAdminButton) {
 			$dialog.find('#dialog-sensor-name').text(curSensor.name);
 			$dialog.find('#dialog-sensor-display').val(curSensor.display);
 			$dialog.find('#dialog-sensor-unit').val(curSensor.unit);
+			$dialog.find('#dialog-sensor-value-type').find('option[value="'+(curSensor.value_type)+'"]').prop('selected', true);
 			$dialog.find('#dialog-sensor-enabled').prop('checked', curSensor.enabled);
 			$dialog.find('#dialog-sensor-monitored').prop('checked', curSensor.monitored);
 			$dialog.find('#dialog-sensor-monitored-every').find('option[value="'+(curSensor.monitored_every==0?1:curSensor.monitored_every)+'"]').prop('selected', true);
@@ -1369,12 +1379,13 @@ function editSensor($sensorAdminButton) {
 					var curName=curSensor.name;
 					var curDisplay=$(this).find('#dialog-sensor-display').val();
 					var curUnit=$(this).find('#dialog-sensor-unit').val();
+          var curValueType=$(this).find('#dialog-sensor-value-type').val()
 					var curEnabled=$(this).find('#dialog-sensor-enabled').prop('checked')?'true':'false';
 					var curMonitored=$(this).find('#dialog-sensor-monitored').prop('checked')?'true':'false';
 					var curMonitoredEvery=$(this).find('#dialog-sensor-monitored-every').val();
           var curTags=curSensor.tags.join();
 					
-					okDialogSensor($sensorAdminButton.attr('data-an-device'), curName, curDisplay, curUnit, curEnabled, curMonitored, curMonitoredEvery, curTags);
+					okDialogSensor($sensorAdminButton.attr('data-an-device'), curName, curDisplay, curUnit, curValueType, curEnabled, curMonitored, curMonitoredEvery, curTags);
 					
 					$( this ).dialog( 'close' );
 				}
@@ -1391,12 +1402,13 @@ function editSensor($sensorAdminButton) {
 						var curName=curSensor.name;
 						var curDisplay=$(this).find('#dialog-sensor-display').val();
 						var curUnit=$(this).find('#dialog-sensor-unit').val();
+            var curValueType=$(this).find('#dialog-sensor-value-type').val()
 						var curEnabled=$(this).find('#dialog-sensor-enabled').prop('checked')?'true':'false';
 						var curMonitored=$(this).find('#dialog-sensor-monitored').prop('checked')?'true':'false';
 						var curMonitoredEvery=$(this).find('#dialog-sensor-monitored-every').val();
             var curTags=curSensor.tags.join();
 						
-						okDialogSensor($sensorAdminButton.attr('data-an-device'), curName, curDisplay, curUnit, curEnabled, curMonitored, curMonitoredEvery, curTags);
+						okDialogSensor($sensorAdminButton.attr('data-an-device'), curName, curDisplay, curUnit, curValueType, curEnabled, curMonitored, curMonitoredEvery, curTags);
 						
 						$( this ).dialog( 'close' );
 					}
@@ -1411,9 +1423,9 @@ function editSensor($sensorAdminButton) {
 /**
  * Save sensor data
  */
-function okDialogSensor(curDevice, curName, curDisplay, curUnit, curEnabled, curMonitored, curMonitoredEvery, curTags) {
+function okDialogSensor(curDevice, curName, curDisplay, curUnit, curValueType, curEnabled, curMonitored, curMonitoredEvery, curTags) {
 	var url = globalConfig.angharad_location+'/SETSENSORDATA/';
-  $.post(url, {name: curName, device: curDevice, display: curDisplay, unit: curUnit, enabled: curEnabled, monitored: curMonitored, monitored_every: curMonitoredEvery, tags: curTags},
+  $.post(url, {name: curName, device: curDevice, display: curDisplay, unit: curUnit, value_type:curValueType, enabled: curEnabled, monitored: curMonitored, monitored_every: curMonitoredEvery, tags: curTags},
   function(data) {
     var response = parseResponse(data);
     if (response.result) {
@@ -2735,10 +2747,8 @@ function okSchedule($dialog) {
 		url += '/SETSCHEDULE';
 		postParams.id = $dialog.find('#dialog-schedule-id').val();
 		isAdd = false;
-		postParams.tags = angharad.schedules[postParams.id].tags.join(',');
 	} else {
 		url += '/ADDSCHEDULE';
-		postParams.tags = angharad.schedules[postParams.id].device;
 	}
 	postParams.name = $dialog.find('#dialog-schedule-name').val();
 	postParams.enabled = $dialog.find('#dialog-schedule-enabled').prop('checked')?'true':'false';
@@ -3209,7 +3219,7 @@ function refreshAngharad(force) {
       logMessage(logTypeError, $.t('Unable to refresh information for actions'));
     });
 		
-		/*url = globalConfig.angharad_location + '/SCRIPTS/';
+		url = globalConfig.angharad_location + '/SCRIPTS/';
     $.get( url, function(data) {
       var response = parseResponse(data);
       if (response.result) {
@@ -3220,7 +3230,7 @@ function refreshAngharad(force) {
     })
     .fail(function() {
       logMessage(logTypeError, $.t('Unable to refresh information for scripts'));
-    });*/
+    });
 		
 		url = globalConfig.angharad_location + '/SCHEDULES/';
     $.get( url, function(data) {
