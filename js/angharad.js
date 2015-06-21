@@ -612,11 +612,13 @@ function initMonitorTab() {
  * Load the monitor tab with all monitors graphs
  */
 function loadMonitorTab() {
-  var profile = getCurrentProfile();
-  
-  for (mon in profile.options.monitors) {
-    updateMonitorDisplay(profile.options.monitors[mon].name);
-  }
+  setTimeout(function() {
+    var profile = getCurrentProfile();
+    
+    for (mon in profile.options.monitors) {
+      updateMonitorDisplay(profile.options.monitors[mon].name);
+    }
+  }, 1);
 }
 
 /**
@@ -791,6 +793,7 @@ function updateMonitorDisplay(name) {
   // Loop in every monitored elements for this monitor, get the monitor values, then display all of them in the monitor div
   $('#div-monitor-series-'+name).empty();
   for (elt in monitor.elements) {
+    curElt = elt;
     var element = monitor.elements[elt];
     var plotMatrix = [];
     var url = globalConfig.angharad_location + '/MONITOR/' + element.device
@@ -862,32 +865,22 @@ function updateMonitorDisplay(name) {
         }
       }
     });
-    $.get( url, function(data) {
-      var response = parseResponse(data);
-      if (response.result) {
-        if (response.json.monitor.values.length > 0) {
-          plotMatrix = [];
-          for (i in response.json.monitor.values) {
-            var d = new Date(0);
-            d.setUTCSeconds(response.json.monitor.values[i].date_time);
-            plotMatrix.push([d, parseFloat(response.json.monitor.values[i].value)]); 
-          }
-          plotMatrices.push(plotMatrix);
+    
+    var response = sendGetRequest(url);
+    
+    if (response.result) {
+      if (response.json.monitor.values.length > 0) {
+        plotMatrix = [];
+        for (i in response.json.monitor.values) {
+          var d = new Date(0);
+          d.setUTCSeconds(response.json.monitor.values[i].date_time);
+          plotMatrix.push([d, parseFloat(response.json.monitor.values[i].value)]); 
         }
-      } else {
-        logMessage(logTypeError, $.t('Error getting monitor ')+url);
+        plotMatrices.push(plotMatrix);
       }
-    })
-    .fail(function() {
-      logMessage(logTypeError, $.t('Error getting monitor ')+url);
-    })
-    .complete(function() {
-      count++
-      if (count == monitor.elements.length) {
-        showMonitor(name, plotMatrices, colors);
-      }
-    });
+    }
   }
+  showMonitor(name, plotMatrices, colors);
 }
 
 /**
@@ -3345,35 +3338,7 @@ function refreshActions(actions) {
  * Refresh all scripts
  */
 function refreshScripts(scripts) {
-  // Loop first in old scripts to see if some are removed in the new list
-  for (old_id in angharad.scripts) {
-    var found = false;
-    for (new_sc in scripts) {
-      if (scripts[new_sc].id == old_id) {
-        found = true;
-      }
-    }
-    if (!found) {
-      $('.group-script-'+old_id).each(function() {
-        $(this).remove();
-      });
-    }
-  }
-  
-  // Then insert the new scripts
-  for (new_sc in scripts) {
-    var curScript = scripts[new_sc];
-    for (tag in curScript.tags) {
-      if (curScript.tags[tag].indexOf(globalConfig.tags_prefix + '#' + getCurrentProfile().id + '#') == 0) {
-        displayScriptInGroup(curScript, curScript.tags[tag].split('#')[2], curScript.tags[tag].split('#')[3], parseInt(curScript.tags[tag].split('#')[4]));
-      }
-    }
-    if (angharad.scripts[scripts[new_sc].id] == undefined) {
-      displayScriptInGroup(scripts[new_sc], tabScriptsSchedulesId, '-1', -1);
-    }
-  }
-  
-  // Finally, replace action list
+  // Replace action list
   angharad.scripts = [];
   for (new_sc in scripts) {
     angharad.scripts[scripts[new_sc].id] = scripts[new_sc];

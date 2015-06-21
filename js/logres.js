@@ -43,6 +43,7 @@ $(document).ready(function() {
   var url = 'config/config.json';
   $.get( url, function(data) {
     globalConfig = data;
+    globalConfig.shouldRefresh = false;
     
     $.i18n.init({fallbackLng:'en'}).done(function() {
       $('#admin-profile-new').val('');
@@ -62,7 +63,12 @@ $(document).ready(function() {
       
       // When everything is loaded, run refresh every 5 minutes
       setInterval(function() {
-        refresh(false);
+        if (document.visibilityState == "visible") {
+          refresh(false);
+          globalConfig.shouldRefresh = false;
+        } else {
+          globalConfig.shouldRefresh = true;
+        }
       }, 5*60*1000);
     });
     
@@ -71,6 +77,12 @@ $(document).ready(function() {
     logMessage(logTypeError, $.t('Error getting configuration'));
   });
 	
+  $(window).focus(function() {
+    if (globalConfig.shouldRefresh) {
+      refresh(false);
+      globalConfig.shouldRefresh = false;
+    }
+  });
 });
 
 /**
@@ -421,6 +433,7 @@ function initEvents() {
 	/* Refresh button */
 	$('#admin-refresh').click(function() {
 		refresh(true);
+    logMessage(logTypeInfo, $.t('Refreshing'));
 	});
 	
 	/* Language */
@@ -1111,6 +1124,7 @@ function moveInGroup($button, direction) {
 		$btn2 = $btn1.parent().next().find('.admin-button');
 		position1 = position2 + 1;
 	}
+  console.log(direction, position1, position2, $btn1, $btn2);
 	if ($btn2.length > 0) {
 		if ($btn1.attr('data-an-type') == 'switch') {
 			removeSwitchFromGroup($btn1.attr('data-an-device'), $btn1.attr('data-an-name'), $btn1.attr('data-an-tab'), $btn1.attr('data-an-group'));
@@ -1214,4 +1228,40 @@ function insertElementInGroup(htmlElement, $group, position) {
 function refresh(force) {
 	refreshAngharad(force);
 	refreshCarleon();
+}
+
+/**
+ * Return JSON result from a REST webservice in sync mode using a HTTP GET, so no data is returned until function is complete
+ */
+function sendGetRequest(url) {
+	var toReturn = { url: url };
+  $.ajax({
+    async: false,
+    type: 'GET',
+    url: url,
+    success: function(data) {
+      try {
+        var jsonResult = $.parseJSON(data);
+        if (jsonResult.result !== undefined && jsonResult.result == 'ok') {
+          toReturn.result = true;
+        } else {
+          toReturn.result = false;
+          toReturn.reason = 'error';
+        }
+        toReturn.json = jsonResult;
+      } catch (err) {
+        toReturn.result = false;
+        toReturn.reason = 'json_error';
+        toReturn.json = {};
+        toReturn.error = err;
+        toReturn.data = data;
+      }
+    },
+    fail: function() {
+      toReturn.result = false;
+      toReturn.json = {};
+      toReturn.reason = 'network_error';
+    }
+  });
+	return toReturn;
 }
