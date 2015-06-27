@@ -2746,7 +2746,7 @@ function okSchedule($dialog) {
 	postParams.name = $dialog.find('#dialog-schedule-name').val();
 	postParams.enabled = $dialog.find('#dialog-schedule-enabled').prop('checked')?'true':'false';
 	postParams.script = $dialog.find('#dialog-schedule-script').val();
-	postParams.device = '';
+	postParams.device = angharad.schedules[postParams.id].device;
 	
 	var now = new Date();
 	var nextTime = $.datepicker.parseDate('dd/mm/yy', $dialog.find('#dialog-schedule-date').val());
