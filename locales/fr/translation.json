@@ -258,9 +258,10 @@
   "Last 3 months": "Derniers 3 mois",
   "Last year": "Dernière année",
   "Close": "Fermer",
-  "Add a new monitor graph":"Ajouter un nouveau graphique de mesures",
-  "Add an element:":"Ajouter un élément",
-  "Monitor since:":"Afficher depuis",
+  "Add a new monitor graph": "Ajouter un nouveau graphique de mesures",
+  "Add an element": "Ajouter un élément",
+  "Monitor since": "Afficher depuis",
+  "Refresh monitor": "Rafraîchir le graphique",
   "Color plots":"Couleur des points",
   "New monitor":"Nouvelles mesures",
   "Refresh monitor:":"Rafraîchir la mesure",
@@ -272,5 +273,13 @@
   "Album artist":"Artiste de l'album",
   "Album":"Album",
   "Year":"Année",
-  "Language":"Langage"
+  "Language":"Langage",
+  "Player": "Lecteur",
+  "Last played songs": "Dernières chansons jouées",
+  "Song list": "Liste des chansons",
+  "Title": "Titre",
+  "Artist": "Artiste",
+  "Album artist": "Artiste de l'album",
+  "Album": "Album",
+  "Year": "Année"
 }

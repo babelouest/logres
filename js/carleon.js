@@ -202,8 +202,8 @@ function gatherCarleonInformations(gatherAngharadInformations) {
         logMessage(logTypeError, $.t('Error getting current profile'));
       })
       .complete(function() {
-        initParametersTab();
         gatherAngharadInformations();
+        initParametersTab();
       });
       
     } else {
@@ -338,6 +338,7 @@ function displayCameraInGroup(curCamera, tab, group, position) {
 														.replace(/%ADMINCLASS%/g, adminClass);
 	
 	insertElementInGroup(html, $group, position);
+	$('#camera-'+curCamera.name).i18n();
 
 	if (getCurrentProfile().options.adminMode) {
 		$('#admin-camera-'+curName).show();
@@ -529,11 +530,8 @@ function triggerImagesGrid(name, camera) {
 			cpt++;
 		}
 	} else if (cameraSwitch == 'stream') {
-		var cameraName = $('#camera-switch-'+name).attr('data-an-camera');
-		var url = globalConfig.carleon_location + carleon.apps['camera'].url + 'stream.php?camera='+cameraName;
-		$('#camera-photo-'+name).attr('src', url);
-		$('#camera-photo-large-'+name).attr('href', url+'&large');
-    $('#camera-photo-large-'+name).trigger('click');
+		$('#camera-pictures-select-'+name).val('list');
+		$('#camera-pictures-select-'+name).trigger('change');
 	}
 }
 
@@ -728,9 +726,10 @@ function displayMpcInGroup(curMpc, tab, group, position) {
 														.replace(/%GROUP%/g, group)
 														.replace(/%POSITION%/g, position)
 														.replace(/%ADMINCLASS%/g, adminClass)
-                            .replace(/%SHOW%/g, $.t('Show'));
+														.replace(/%SHOW%/g, $.t('Show'));
 	
 	insertElementInGroup(html, $group, position);
+	$('#mpc-'+curMpc.name).i18n();
 
 	if (getCurrentProfile().options.adminMode) {
 		$('#admin-mpc-'+curName).show();
@@ -959,9 +958,10 @@ function displayRadioInGroup(curRadio, tab, group, position) {
 														.replace(/%GROUP%/g, group)
 														.replace(/%POSITION%/g, position)
 														.replace(/%ADMINCLASS%/g, adminClass)
-                            .replace(/%SHOW%/g, $.t('Show'));
+														.replace(/%SHOW%/g, $.t('Show'));
 	
 	insertElementInGroup(html, $group, position);
+	$('#radio-'+curName).i18n();
 
 	if (profile.options.adminMode) {
 		$('#admin-radio-'+curName).show();

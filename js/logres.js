@@ -60,6 +60,8 @@ $(document).ready(function() {
       
       // Translate application
       $(':root').i18n();
+      $('#admin-refresh').attr('value', $.t('Refresh'));
+      $('#admin-profile-remove').attr('value', $.t('Remove'));
       
       // When everything is loaded, run refresh every 5 minutes
       setInterval(function() {
@@ -837,7 +839,7 @@ function initParametersTab() {
     });
 	});
 	
-	$('#admin-toggle').prop('checked', currentProfile.options.adminMode==true);
+	$('#admin-toggle').prop('checked', currentProfile.options.adminMode===true);
 	
 	if (currentProfile.options.adminMode) {
 		$('.admin-button').show();
@@ -1124,7 +1126,6 @@ function moveInGroup($button, direction) {
 		$btn2 = $btn1.parent().next().find('.admin-button');
 		position1 = position2 + 1;
 	}
-  console.log(direction, position1, position2, $btn1, $btn2);
 	if ($btn2.length > 0) {
 		if ($btn1.attr('data-an-type') == 'switch') {
 			removeSwitchFromGroup($btn1.attr('data-an-device'), $btn1.attr('data-an-name'), $btn1.attr('data-an-tab'), $btn1.attr('data-an-group'));
@@ -1220,6 +1221,7 @@ function insertElementInGroup(htmlElement, $group, position) {
 		});
 	}
 	$group.attr('data-an-nb-elements', parseInt($group.attr('data-an-nb-elements'))+1);
+	$(htmlElement).i18n();
 }
 
 /**

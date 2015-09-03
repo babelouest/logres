@@ -72,7 +72,7 @@ var scriptsContainerTemplate = '<div id="div-container-script">\n\
 
 var scriptTemplate = '<div id="div-script-%NAME%" class="script %CLASS% group-script-%GROUPNAME% script-class data-element" data-an-position="%POSITION%" data-an-name="%SCRIPT%" data-an-id="%NAME%">\n\
 	<input type="button" class="admin-button %ADMINCLASS%" value="+" name="admin-script-%NAME%" id="admin-script-%NAME%" data-an-type="script" data-an-name="%SCRIPT%" data-an-tab="%TAB%" data-an-group="%GROUP%"/>\n\
-  <input type="button" name="script-%NAME%" id="script-%NAME%" value="%DISPLAY%" data-an-script="%GROUPNAME%" class="script-button">\n\
+	<input type="button" name="script-%NAME%" id="script-%NAME%" value="%DISPLAY%" data-an-script="%GROUPNAME%" class="script-button">\n\
 	<a href="#" class="schedule-attached">\n\
 		<img src="images/scheduled.png" alt="schedules" id="schedule-attached-%NAME%" class="schedule-attached-img"/>\n\
 		<span id="display-schedule-attached-%NAME%" class="display-schedule-attached"></span>\n\
@@ -88,7 +88,7 @@ var schedulesContainerTemplate = '<div id="div-container-schedule">\n\
 	<div id="fold-schedules" class="new-group-div"><label id="container-schedule-label"><img src="contextMenu/images/page_white_add.png"/> %DISPLAY%</label></div>\n\
 	<div id="container-schedules" class="block">\n\
 		<div id="new-schedule" class="div-hidden new-group-div">\n\
-			<label id="new-schedule-title" class="title-display new-group" data-i18n><img src="contextMenu/images/page_white_add.png"/> Add a schedule</label>\n\
+			<label id="new-schedule-title" class="title-display new-group"><img src="contextMenu/images/page_white_add.png"/> <span id="span-new-schedule-title" data-i18n>Add a scheduled task</span></label>\n\
 		</div>\n\
 		<div id="container-schedule" data-an-nb-elements="0"><div>\n\
 	</div>\n\
@@ -104,7 +104,7 @@ var actionsContainerTemplate = '<div id="div-container-action">\n\
 	<div id="fold-actions" class="new-group-div"><label id="container-actions-label"><img src="contextMenu/images/page_white_add.png"/> %DISPLAY%</label></div>\n\
 	<div id="container-actions" class="block">\n\
 		<div id="new-action" class="div-hidden new-group-div">\n\
-			<label id="new-action-title" class="title-display new-group" data-i18n><img src="contextMenu/images/page_white_add.png"/> Add an action</label>\n\
+			<label id="new-action-title" class="title-display new-group"><img src="contextMenu/images/page_white_add.png"/> <span id="span-new-action-title" data-i18n>Add an action</span></label>\n\
 		</div>\n\
 		<div id="container-action" data-an-nb-elements="0"><div>\n\
 	</div>\n\
@@ -237,6 +237,7 @@ function gatherAngharadInformations() {
       var htmlActions = actionsContainerTemplate.replace(/%DISPLAY%/g, $.t('All actions'));
       var index = 0;
       $('#actions-div').append(htmlActions);
+      $('#actions-div').i18n();
       angharad.actions = [];
       for (key in response.json.actions) {
         var curAction = response.json.actions[key];
@@ -281,6 +282,7 @@ function gatherAngharadInformations() {
       var htmlSchedules = schedulesContainerTemplate.replace(/%DISPLAY%/g, $.t('All schedules'));
       var index = 0;
       $('#schedules-div').append(htmlSchedules);
+      $('#schedules-div').i18n();
       angharad.schedules = [];
       for (key in response.json.schedules) {
         var curSchedule = response.json.schedules[key];
@@ -323,6 +325,12 @@ function gatherAngharadInformations() {
           var htmlScripts = scriptsContainerTemplate.replace(/%DISPLAY%/g, $.t('All scripts'));
           var index = 0;
           $('#scripts-div').append(htmlScripts);
+          if (getCurrentProfile().options.adminMode) {
+            $('#new-script').show();
+            $('#new-schedule').show();
+            $('#new-action').show();
+          }
+          $('#scripts-div').i18n();
           angharad.scripts = [];
           for (key in response.json.scripts) {
             var curScript = response.json.scripts[key];
@@ -626,9 +634,9 @@ function loadMonitorTab() {
  */
 function displayMonitor($container, name, display) {
   var html = monitorTemplate.replace(/%NAME%/g, name)
-                            .replace(/%ADDELEMENT%/g, $.t('Add an element:'))
-                            .replace(/%MONITORSINCE%/g, $.t('Monitor since:'))
-                            .replace(/%REFRESHMONITOR%/g, $.t('Refresh monitor:'))
+                            .replace(/%ADDELEMENT%/g, $.t('Add an element'))
+                            .replace(/%MONITORSINCE%/g, $.t('Monitor since'))
+                            .replace(/%REFRESHMONITOR%/g, $.t('Refresh monitor'))
                             .replace(/%REFRESH%/g, $.t('Refresh'))
                             .replace(/%ADD%/g, $.t('Add'))
                             .replace(/%DISPLAY%/g, display);
@@ -665,6 +673,7 @@ function displayMonitor($container, name, display) {
   
   $container.append(html);
   $('#monitor-add-element-'+name).append(options);
+  $('#monitor-'+name).i18n();
   
   if (isNaN(nbMonitors)) {
     $container.attr('data-an-nb-elements', '0');
