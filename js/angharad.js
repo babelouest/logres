@@ -3382,6 +3382,7 @@ function refreshSchedules(schedules) {
   angharad.schedules = [];
   for (new_sh in schedules) {
     angharad.schedules[schedules[new_sh].id] = schedules[new_sh];
+    updateScheduleDisplay(schedules[new_sh]);
   }
 }
 
